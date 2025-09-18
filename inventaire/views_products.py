@@ -4,7 +4,7 @@ from django.contrib import messages
 
 from .forms_products import ProductForm
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def list_products(request):
     q = (request.GET.get("q") or "").strip().lower()
 
@@ -35,7 +35,7 @@ def list_products(request):
     }
     return render(request, "products/list.html", ctx)
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def new_product(request):
     """
     Stub MVP:
@@ -60,3 +60,4 @@ def new_product(request):
         form = ProductForm()
 
     return render(request, "products/new.html", {"form": form})
+

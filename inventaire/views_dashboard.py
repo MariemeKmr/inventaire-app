@@ -1,7 +1,7 @@
-from django.contrib.auth.decorators import login_required
+﻿from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-@login_required(login_url="/admin/login/")
+@login_required()
 def dashboard(request):
     ctx = {
         "low_stock_count": 0,
@@ -9,3 +9,5 @@ def dashboard(request):
         "revenue_today": "0",
     }
     return render(request, "core/dashboard.html", ctx)
+
+
