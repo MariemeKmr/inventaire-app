@@ -1,0 +1,72 @@
+﻿{% extends "base.html" %}
+{% load form_extras %}
+{% block title %}Réapprovisionnement{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h3 class="mb-0">Réapprovisionnement</h3>
+  <a href="{% url 'products:list' %}" class="btn btn-outline-secondary">Retour Produits</a>
+</div>
+
+<form method="post" class="card p-3 shadow-sm">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Produit</label>
+      {{ form.product|add_class:"form-select" }}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Quantité</label>
+      {{ form.quantity|add_class:"form-control" }}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Coût unitaire (CFA)</label>
+      {{ form.unit_cost|add_class:"form-control" }}
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Fournisseur</label>
+      {{ form.supplier|add_class:"form-control" }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Référence</label>
+      {{ form.reference|add_class:"form-control" }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Date</label>
+      {{ form.date|add_class:"form-control" }}
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">Remarque</label>
+      {{ form.note|add_class:"form-control" }}
+    </div>
+  </div>
+
+  {% if form.errors %}
+    <div class="alert alert-danger mt-3">Vérifie les champs en rouge.</div>
+  {% endif %}
+
+  <div class="d-flex gap-2 mt-3">
+    <button class="btn btn-primary">Enregistrer</button>
+    <a class="btn btn-outline-secondary" href="{% url 'products:list' %}">Annuler</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // focus auto + set date par défaut = aujourd'hui si vide
+  (function(){
+    const q = document.getElementById("id_quantity");
+    const d = document.getElementById("id_date");
+    if (q) q.focus();
+    if (d && !d.value){
+      const t = new Date(); const m = String(t.getMonth()+1).padStart(2,"0");
+      const day = String(t.getDate()).padStart(2,"0");
+      d.value = `${t.getFullYear()}-${m}-${day}`;
+    }
+  })();
+</script>
+{% endblock %}
+

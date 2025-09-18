@@ -1,0 +1,49 @@
+﻿{% extends "base.html" %}
+{% block title %}Produits{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h3 class="mb-0">Produits</h3>
+  <div class="d-flex gap-2">
+    <a href="{% url 'products:new' %}" class="btn btn-primary">Nouveau produit</a>
+  </div>
+</div>
+
+<!-- Filtres catégories (badges cliquables) -->
+<div class="mb-3">
+  {% for c in categories %}
+    <a class="badge rounded-pill text-bg-light p-2 me-1 mb-1" href="?cat={{ c.id }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ c.nom }}</a>
+  {% empty %}
+    <span class="text-muted">Aucune catégorie</span>
+  {% endfor %}
+</div>
+
+<!-- Grille produits -->
+<div class="row row-cols-2 row-cols-md-4 row-cols-xl-6 g-3">
+  {% for p in page_obj.object_list %}
+  <div class="col">
+    <div class="card h-100 {% if p.quantite|default:0 <= low_stock_threshold %}border-warning{% endif %}">
+      <img src="{{ p.image_url }}" class="card-img-top p-2" alt="{{ p.nom }}">
+      <div class="card-body p-2">
+        <div class="small text-muted text-truncate">{{ p.categorie.nom|default:'—' }}</div>
+        <div class="fw-semibold text-truncate" title="{{ p.nom }}">{{ p.nom }}</div>
+        <div class="d-flex justify-content-between align-items-center mt-1">
+          <span class="price">{{ p.prix_vente }} CFA</span>
+          <span class="badge {% if p.quantite <= low_stock_threshold %}text-bg-warning{% else %}text-bg-light{% endif %}">{{ p.quantite }}</span>
+        </div>
+      </div>
+      <div class="card-footer bg-white border-0 p-2 d-grid gap-2">
+        <a href="{% url 'sales:quick' %}?product={{ p.id }}" class="btn btn-primary btn-sm">Vendre</a>
+        <a href="#" class="btn btn-outline-secondary btn-sm">Modifier</a>
+        <a href="{% url 'replenish:index' %}?product={{ p.id }}" class="btn btn-outline-primary btn-sm">Réappro</a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><p class="text-muted">Aucun produit.</p></div>
+  {% endfor %}
+</div>
+
+{% include '_partials/_pagination.html' with page_obj=page_obj %}
+{% endblock %}
+

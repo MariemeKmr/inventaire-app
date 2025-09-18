@@ -1,0 +1,22 @@
+﻿<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
+  <div class="container-fluid px-3">
+    <a class="navbar-brand fw-bold text-primary" href="{% url 'dashboard' %}">Inventaire</a>
+    <div class="ms-auto d-flex align-items-center">
+      {% if request.user.is_authenticated %}
+      <div class="dropdown">
+        <a class="btn btn-outline-secondary dropdown-toggle" href="#" data-bs-toggle="dropdown">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="/admin/">Administration</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'admin:logout' %}?next=/admin/login/">Se dÃ©connecter</a></li>
+        </ul>
+      </div>
+      {% else %}
+      <a class="btn btn-primary" href="/admin/login/">Se connecter</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+

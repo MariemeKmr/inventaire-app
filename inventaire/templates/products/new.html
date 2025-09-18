@@ -1,0 +1,98 @@
+﻿{% extends "base.html" %}
+{% load static %}\n{% load form_extras %}
+{% block title %}Nouveau produit{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h3 class="mb-0">Nouveau produit</h3>
+  <a href="{% url 'products:list' %}" class="btn btn-outline-secondary">Retour à la liste</a>
+</div>
+
+<form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+  {% csrf_token %}
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">Nom</label>
+      {{ form.nom|add_class:"form-control" }}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Catégorie</label>
+      {{ form.categorie|add_class:"form-control" }}
+      <div class="form-text">{{ form.categorie.help_text }}</div>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label">Prix d'achat (CFA)</label>
+      {{ form.prix_achat|add_class:"form-control" }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Prix de vente (CFA)</label>
+      {{ form.prix_vente|add_class:"form-control" }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Quantité</label>
+      {{ form.quantite|add_class:"form-control" }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Photo (fichier)</label>
+      {{ form.image_file|add_class:"form-control" }}      
+      <div class="form-text">Option A (local) → Remove.bg → Cloudinary (serveur)</div>
+      <img id="previewImg" class="img-fluid mt-2 d-none rounded" alt="Aperçu" />
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">URL image (Cloudinary)</label>
+      {{ form.image_url|add_class:"form-control" }}
+      <div class="form-text">{{ form.image_url.help_text }}</div>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Code-barres</label>
+      {{ form.barcode|add_class:"form-control" }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Clé API Remove.bg</label>
+      {{ form.removebg_api_key|add_class:"form-control" }}
+      <div class="form-text">{{ form.removebg_api_key.help_text }}</div>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Dossier Cloudinary</label>
+      {{ form.cloudinary_folder|add_class:"form-control" }}
+      <div class="form-text">{{ form.cloudinary_folder.help_text }}</div>
+    </div>
+  </div>
+
+  {% if form.errors %}
+    <div class="alert alert-danger mt-3">
+      Vérifie les champs en rouge.
+    </div>
+  {% endif %}
+
+  <div class="d-flex gap-2 mt-3">
+    <button class="btn btn-primary">Enregistrer</button>
+    <a class="btn btn-outline-secondary" href="{% url 'products:list' %}">Annuler</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Aperçu de l'image locale
+  (function(){
+    const input = document.getElementById("id_image_file");
+    const preview = document.getElementById("previewImg");
+    if(!input || !preview) return;
+    input.addEventListener("change", (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      const url = URL.createObjectURL(f);
+      preview.src = url;
+      preview.classList.remove("d-none");
+    });
+  })();
+</script>
+{% endblock %}
+
+

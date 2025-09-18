@@ -1,0 +1,11 @@
+﻿<form class="app-search container-fluid bg-white border-bottom py-2 px-3" role="search" method="get" action="{% url 'products:list' %}">
+  <div class="row g-2">
+    <div class="col-12 col-md-8 col-lg-6">
+      <input class="form-control" type="search" placeholder="Rechercher produit (Nom / code-barres) â€” touche /" name="q" id="globalSearch" value="{{ request.GET.q }}">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary">Rechercher</button>
+    </div>
+  </div>
+</form>
+

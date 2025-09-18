@@ -1,0 +1,22 @@
+:root{
+  --bs-body-bg: #f8fbff;
+  --brand-blue-600: #3c7cff;
+}
+.text-primary{ color: var(--brand-blue-600) !important; }
+.btn-primary{ background: var(--brand-blue-600); border-color: var(--brand-blue-600); }
+.btn-outline-primary{ color: var(--brand-blue-600); border-color: var(--brand-blue-600); }
+.btn-outline-primary:hover{ background: var(--brand-blue-600); color:#fff; }
+
+.card{ border-radius: 1rem; }
+.btn, .form-control, .form-select{ border-radius: .8rem; }
+
+.sidebar-wrapper{ top: 56px; } /* ajuste si ta navbar change de hauteur */
+.app-sidebar .list-group-item{ border: 0; border-radius: .6rem; margin: .125rem 0; }
+.app-sidebar .list-group-item:hover{ background-color: #f1f5ff; }
+/* Sidebar width/spacing fix */
+.app-sidebar .list-group-item { background:#f7faff; }
+.app-sidebar .list-group-item.active,
+.app-sidebar .list-group-item:hover { background:#eef4ff; }
+
+/* Product cards */
+.price{ font-weight:600; }
