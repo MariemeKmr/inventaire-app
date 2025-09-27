@@ -1,8 +1,93 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Dettes{% endblock %}
 {% block content %}
-<h3>Dettes</h3>
-<p class="text-muted">Liste des dettes à venir…</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Dettes</h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="?status=EN_COURS">En cours</a>
+    <a class="btn btn-outline-secondary btn-sm" href="?status=PARTIEL">Partiel</a>
+    <a class="btn btn-outline-secondary btn-sm" href="?status=PAYEE">Payées</a>
+    <a class="btn btn-outline-secondary btn-sm" href="?late=1">En retard</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'debts:new' %}">
+      <i class="fa-solid fa-plus me-1"></i> Nouvelle dette
+    </a>
+  </div>
+</div>
+
+<form class="row g-2 mb-3">
+  <div class="col-sm-4">
+    <input name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Rechercher (client, téléphone)">
+  </div>
+  <div class="col-sm-3">
+    <input type="date" name="from" value="{{ request.GET.from }}" class="form-control">
+  </div>
+  <div class="col-sm-3">
+    <input type="date" name="to" value="{{ request.GET.to }}" class="form-control">
+  </div>
+  <div class="col-sm-2 d-grid">
+    <button class="btn btn-outline-primary">Filtrer</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Client</th>
+          <th>Téléphone</th>
+          <th class="text-end">Montant</th>
+          <th class="text-end">Payé</th>
+          <th class="text-end">Restant</th>
+          <th>Statut</th>
+          <th>Date</th>
+          <th style="width:1%"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {# Démo statique : remplace par ta boucle #}
+        {% for d in debts %}
+        <tr class="{% if d.is_late %}table-danger{% endif %}">
+          <td class="fw-semibold">{{ d.nom_client }}</td>
+          <td>{{ d.telephone|default:"—" }}</td>
+          <td class="text-end">{{ d.montant }} €</td>
+          <td class="text-end">{{ d.total_paye }} €</td>
+          <td class="text-end fw-semibold">{{ d.restant }} €</td>
+          <td>
+            {% if d.statut == 'PAYEE' %}
+              <span class="badge bg-success">PAYÉE</span>
+            {% elif d.statut == 'PARTIEL' %}
+              <span class="badge bg-info text-dark">PARTIEL</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">EN COURS</span>
+            {% endif %}
+            {% if d.is_late %}<span class="badge bg-danger ms-1">Retard</span>{% endif %}
+          </td>
+          <td>{{ d.date_dette }}</td>
+          <td class="text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'debts:detail' d.id %}">Voir</a>
+            <a class="btn btn-sm btn-outline-success" href="{% url 'debts:pay' d.id %}">Paiement</a>
+            {% if request.user.is_staff %}
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'debts:edit' d.id %}">Modifier</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'debts:delete' d.id %}">Supprimer</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">Aucune dette.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr>
+          <th colspan="2">Totaux</th>
+          <th class="text-end">{{ totals.du }} €</th>
+          <th class="text-end">{{ totals.paye }} €</th>
+          <th class="text-end">{{ totals.restant }} €</th>
+          <th colspan="3"></th>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+  {% include "_partials/_pagination.html" %}
+</div>
 {% endblock %}
-
-

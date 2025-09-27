@@ -1,0 +1,33 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if object %}Modifier{% else %}Nouveau{% endif %} produit{% endblock %}
+{% block content %}
+<div class="card p-3 mx-auto" style="max-width:760px;">
+  <h3 class="mb-3">{% if object %}Modifier{% else %}Nouveau{% endif %} produit</h3>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="row g-3">
+      <div class="col-md-8">{{ form.nom.label_tag }} {{ form.nom }}</div>
+      <div class="col-md-4">{{ form.categorie.label_tag }} {{ form.categorie }}</div>
+
+      <div class="col-md-4">{{ form.prix_achat.label_tag }} {{ form.prix_achat }}</div>
+      <div class="col-md-4">{{ form.prix_vente.label_tag }} {{ form.prix_vente }}</div>
+      <div class="col-md-4">{{ form.quantite.label_tag }} {{ form.quantite }}</div>
+
+      <div class="col-md-6">{{ form.barcode.label_tag }} {{ form.barcode }}</div>
+      <div class="col-md-6">{{ form.image_url.label_tag }} {{ form.image_url }}</div>
+
+      <div class="col-md-12">
+        <label class="form-label">Photo (upload local)</label>
+        {{ form.image_file }}
+        <div class="form-text">Optionnel — traitement Remove.bg + Cloudinary côté backend.</div>
+      </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+      <button class="btn btn-primary">Enregistrer</button>
+      <a class="btn btn-outline-secondary" href="{% url 'products:list' %}">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

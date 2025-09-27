@@ -1,0 +1,13 @@
+﻿{% extends "base.html" %}
+{% block title %}Supprimer produit{% endblock %}
+{% block content %}
+<div class="card p-4 mx-auto" style="max-width:640px;">
+  <h3 class="mb-3">Supprimer « {{ object.nom }} » ?</h3>
+  <p class="text-danger">Cette action est définitive.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a class="btn btn-outline-secondary" href="{% url 'products:list' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

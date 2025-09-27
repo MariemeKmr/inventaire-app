@@ -1,0 +1,13 @@
+﻿{% extends "base.html" %}
+{% block title %}Supprimer catégorie{% endblock %}
+{% block content %}
+<div class="card p-4 mx-auto" style="max-width:560px;">
+  <h3 class="mb-3">Supprimer « {{ object.nom }} » ?</h3>
+  <p class="text-danger">Les produits resteront mais sans catégorie.</p>
+  <form method="post">
+    {% csrf_token %}
+    <button class="btn btn-danger">Supprimer</button>
+    <a class="btn btn-outline-secondary" href="{% url 'categories:index' %}">Annuler</a>
+  </form>
+</div>
+{% endblock %}

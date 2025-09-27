@@ -1,117 +1,140 @@
-﻿from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.urls import reverse
-from .forms_products import ProductForm
-from .models import Produit, Categorie
+﻿from django.contrib import messages
 from django.db.models import Q
-from django.core.paginator import Paginator
-# views_products.py
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse, reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 
-@login_required(login_url="/admin/login/")
-def list_products(request):
-    q = (request.GET.get("q") or "").strip()
-    cat = (request.GET.get("cat") or "").strip()     # valeur = nom de la catégorie (PK texte)
-    sort = (request.GET.get("sort") or "-date_ajout").strip()
-    page_number = request.GET.get("page") or 1
-    per_page = int(request.GET.get("per_page") or 12)
-    low_stock_threshold = 3
+from .models import Produit, Categorie
+from .forms_products import ProduitForm, ProduitFilterForm, CategorieForm
 
-    # Base queryset + jointure catégorie
-    qs = Produit.objects.select_related("categorie")
+def _can_edit(request):
+    # À brancher sur votre logique (ex: request.user.is_staff)
+    return getattr(request.user, "is_staff", False)
 
-    # Recherche texte (nom produit, code-barres, nom catégorie)
-    if q:
-        qs = qs.filter(
-            Q(nom__icontains=q) |
-            Q(barcode__icontains=q) |
-            Q(categorie__nom__icontains=q)
-        )
+# --------- Produits ---------
+class ProductListView(ListView):
+    model = Produit
+    template_name = "products/list.html"
+    paginate_by = 24
 
-    # Filtre catégorie (PK = nom)
-    if cat:
-        qs = qs.filter(categorie__nom=cat)
-
-    # Tri simple (sécurise un minimum les champs autorisés)
-    allowed_sorts = {"nom", "-nom", "date_ajout", "-date_ajout", "prix_vente", "-prix_vente", "quantite", "-quantite"}
-    if sort not in allowed_sorts:
-        sort = "-date_ajout"
-    qs = qs.order_by(sort, "-pk")
-
-    # Pagination
-    paginator = Paginator(qs, per_page)
-    page_obj = paginator.get_page(page_number)
-
-    # Transforme en dicts compatibles avec ton template démo
-    products = []
-    for p in page_obj.object_list:
-        # image: priorise l'upload si présent, sinon l'URL stockée
-        img = None
-        if getattr(p, "image_file", None):
-            try:
-                if p.image_file:
-                    img = p.image_file.url
-            except Exception:
-                img = None
-        if not img:
-            img = p.image_url
-
-        products.append({
-            "id": p.pk,
-            "nom": p.nom,
-            "prix_vente": p.prix_vente,
-            "quantite": p.quantite,
-            "image_url": img,
-            "categorie": {
-                # PK texte = nom ; on expose "id" pour rester compatible
-                "id": p.categorie_id,  # == nom si non nul
-                "nom": p.categorie.nom if p.categorie else None,
-            },
-        })
-
-    # On remplace l'object_list par nos dicts (le reste du Page est intact: has_next, etc.)
-    page_obj.object_list = products
-
-    # Liste des catégories pour les filtres (clé "id" = nom)
-    categories = [{"id": c.nom, "nom": c.nom} for c in Categorie.objects.order_by("nom")]
-
-    ctx = {
-        "categories": categories,
-        "page_obj": page_obj,
-        "low_stock_threshold": low_stock_threshold,
-        "q": q,
-        "selected_cat": cat,
-        "sort": sort,
-        "per_page": per_page,
-    }
-    return render(request, "products/list.html", ctx)
-
-@login_required(login_url="/admin/login/")
-def product_create(request):
-    if request.method == "POST":
-        form = ProductForm(request.POST, request.FILES)
+    def get_queryset(self):
+        qs = Produit.objects.select_related("categorie").order_by("-date_ajout")
+        form = ProduitFilterForm(self.request.GET or None)
         if form.is_valid():
-            produit = form.save(commit=False)  # Crée une instance mais ne sauvegarde pas encore
-            produit.save()  # Sauvegarde dans la base de données
-            messages.success(request, "Produit enregistré avec succès.")
-            return redirect("products:list")
-        else:
-            messages.error(request, "Veuillez corriger les erreurs.")
-    else:
-        form = ProductForm()
+            q = form.cleaned_data.get("q")
+            cat = form.cleaned_data.get("categorie")
+            include_archived = form.cleaned_data.get("include_archived")
+            if q:
+                qs = qs.filter(Q(nom__icontains=q) | Q(barcode__icontains=q))
+            if cat:
+                qs = qs.filter(categorie=cat)
+            if not include_archived:
+                qs = qs.filter()  # pas d'archivage en DB pour l'instant
+        return qs
 
-    return render(request, "products/new.html", {"form": form})
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["filter_form"] = ProduitFilterForm(self.request.GET or None)
+        ctx["can_edit_products"] = _can_edit(self.request)
+        ctx["stock_low_threshold"] = 3
+        return ctx
 
-@login_required
-def add_product(request):
-    if request.method == "POST":
-        form = ProductForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Produit enregistré avec succès.")
-            return redirect("products:list")
-        else:
-            messages.error(request, "Corrige les erreurs du formulaire.")
-    else:
-        form = ProductForm()
-    return render(request, "products/add.html", {"form": form})
+class ProductDetailView(DetailView):
+    model = Produit
+    template_name = "products/detail.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["can_edit_products"] = _can_edit(self.request)
+        ctx["stock_low_threshold"] = 3
+        return ctx
+
+class ProductCreateView(CreateView):
+    model = Produit
+    form_class = ProduitForm
+    template_name = "products/form.html"
+    success_url = reverse_lazy("products:list")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, "Produit ajouté.")
+        return super().form_valid(form)
+
+class ProductUpdateView(UpdateView):
+    model = Produit
+    form_class = ProduitForm
+    template_name = "products/form.html"
+    success_url = reverse_lazy("products:list")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        messages.success(self.request, "Produit modifié.")
+        return super().form_valid(form)
+
+class ProductDeleteView(DeleteView):
+    model = Produit
+    template_name = "products/confirm_delete.html"
+    success_url = reverse_lazy("products:list")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+# --------- Catégories ---------
+class CategoryListView(ListView):
+    model = Categorie
+    template_name = "categories/index.html"
+    context_object_name = "categories"
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+class CategoryCreateView(CreateView):
+    model = Categorie
+    form_class = CategorieForm
+    template_name = "categories/form.html"
+    success_url = reverse_lazy("categories:index")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+class CategoryUpdateView(UpdateView):
+    model = Categorie
+    form_class = CategorieForm
+    template_name = "categories/form.html"
+    success_url = reverse_lazy("categories:index")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)
+
+class CategoryDeleteView(DeleteView):
+    model = Categorie
+    template_name = "categories/confirm_delete.html"
+    success_url = reverse_lazy("categories:index")
+
+    def dispatch(self, request, *args, **kwargs):
+        if not _can_edit(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied("Réservé à l’admin.")
+        return super().dispatch(request, *args, **kwargs)

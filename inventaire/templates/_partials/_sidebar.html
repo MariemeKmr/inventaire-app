@@ -11,7 +11,7 @@
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'sales:quick' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'sales:quick' %}active{% endif %}">
+      <a href="{% url 'sales:history' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'sales:history' %}active{% endif %}">
         <i class="fa-solid fa-cart-shopping me-2"></i> <span class="label">Ventes</span>
       </a>
     </li>
@@ -32,3 +32,6 @@
     </li>
   </ul>
 </div>
+
+
+

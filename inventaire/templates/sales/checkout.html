@@ -1,0 +1,106 @@
+﻿{% extends 'base.html' %}
+{% block title %}Validation de la vente{% endblock %}
+{% block content %}
+<div class="container" style="max-width: 820px;">
+  <h3 class="mb-3">Validation de la vente</h3>
+
+  {# Fallback démo #}
+  {% with items=cart_items|default:[
+    {'name':'Parfum Jasmin','unit':15000,'qty':1},
+    {'name':'Encens Santal','unit':5000,'qty':2}
+  ] %}
+
+  <div class="card mb-3">
+    <div class="card-header">Récapitulatif</div>
+    <div class="card-body">
+      <ul class="list-group list-group-flush">
+        {% with total=0 %}
+        {% for it in items %}
+          {% with line=it.unit|add:0|floatformat:0 %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-semibold">{{ it.name }}</div>
+              <div class="text-muted small">Qté: {{ it.qty }} × {{ it.unit|floatformat:0 }} FCFA</div>
+            </div>
+            <div class="fw-semibold">
+              {% widthratio it.unit it.qty 1 %}{% comment %}hack inutile, on calcule au JS plus bas{% endcomment %}
+              <span class="line-total" data-unit="{{ it.unit }}" data-qty="{{ it.qty }}"></span> FCFA
+            </div>
+          </li>
+          {% endwith %}
+        {% endfor %}
+        {% endwith %}
+      </ul>
+      <div class="d-flex justify-content-end mt-3">
+        <div class="h5">Total : <span id="co-total"></span> FCFA</div>
+      </div>
+    </div>
+  </div>
+
+  <form>
+    <div class="card mb-3">
+      <div class="card-header">Paiement</div>
+      <div class="card-body">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="paymode" id="pay-cash" checked>
+          <label class="form-check-label" for="pay-cash">Comptant</label>
+        </div>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="radio" name="paymode" id="pay-debt">
+          <label class="form-check-label" for="pay-debt">Dette (créera une dette)</label>
+        </div>
+
+        <div id="debt-fields" class="mt-3 d-none">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">Nom du client</label>
+              <input class="form-control" placeholder="Ex: Awa Ndiaye">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Téléphone</label>
+              <input class="form-control" placeholder="Ex: 77 123 45 67">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Remarque</label>
+              <input class="form-control" placeholder="Facultatif">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{% url 'sales:cart' %}" class="btn btn-outline-secondary">← Retour au panier</a>
+      <button type="button" class="btn btn-primary">Confirmer la vente</button>
+    </div>
+  </form>
+
+  {% endwith %}
+</div>
+
+<script>
+(function(){
+  const fmt = n => new Intl.NumberFormat('fr-FR').format(n||0);
+  let sum = 0;
+  document.querySelectorAll('.line-total').forEach(el=>{
+    const unit = parseInt(el.dataset.unit||"0",10);
+    const qty  = parseInt(el.dataset.qty||"0",10);
+    const val  = unit * qty;
+    el.textContent = fmt(val);
+    sum += val;
+  });
+  const tot = document.getElementById('co-total');
+  if (tot) tot.textContent = fmt(sum);
+
+  const debt = document.getElementById('pay-debt');
+  const cash = document.getElementById('pay-cash');
+  const fields = document.getElementById('debt-fields');
+  function toggle() {
+    fields.classList.toggle('d-none', !debt.checked);
+  }
+  debt?.addEventListener('change', toggle);
+  cash?.addEventListener('change', toggle);
+  toggle();
+})();
+</script>
+{% endblock %}

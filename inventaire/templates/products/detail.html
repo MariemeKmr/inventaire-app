@@ -1,0 +1,60 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ object.nom }}{% endblock %}
+{% block content %}
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card p-3">
+      {% if object.image_url %}
+        <img src="{{ object.image_url }}" alt="{{ object.nom }}" style="width:100%;object-fit:contain;background:#fff;">
+      {% elif object.image_file %}
+        <img src="{{ object.image_file.url }}" alt="{{ object.nom }}" style="width:100%;object-fit:contain;background:#fff;">
+      {% else %}
+        <div class="text-muted text-center p-5">Pas d’image</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-7">
+    <div class="card p-3">
+      <h3 class="mb-1">{{ object.nom }}</h3>
+      <div class="text-muted mb-3">{{ object.categorie|default:"(sans catégorie)" }}</div>
+
+      <div class="row g-3">
+        <div class="col-6">
+          <div class="fw-semibold">Prix de vente</div>
+          <div>{{ object.prix_vente }} CFA</div>
+        </div>
+        <div class="col-6">
+          <div class="fw-semibold">Prix d’achat</div>
+          <div>{{ object.prix_achat }} CFA</div>
+        </div>
+        <div class="col-6">
+          <div class="fw-semibold">Stock</div>
+          {% if object.quantite <= 0 %}
+            <span class="badge text-bg-danger">0</span>
+          {% elif object.quantite <= stock_low_threshold %}
+            <span class="badge text-bg-warning">{{ object.quantite }}</span>
+          {% else %}
+            <span class="badge text-bg-success">{{ object.quantite }}</span>
+          {% endif %}
+        </div>
+        <div class="col-6">
+          <div class="fw-semibold">Code-barres</div>
+          <div class="text-monospace">{{ object.barcode|default:"—" }}</div>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{% url 'sales:quick' %}?q={{ object.nom|urlencode }}">
+          <i class="fa-solid fa-cart-shopping me-1"></i> Vendre
+        </a>
+        {% if can_edit_products %}
+          <a class="btn btn-secondary" href="{% url 'products:edit' object.pk %}">Modifier</a>
+          <a class="btn btn-danger" href="{% url 'products:delete' object.pk %}">Supprimer</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

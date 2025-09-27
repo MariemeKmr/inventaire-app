@@ -1,0 +1,44 @@
+﻿{% extends 'base.html' %}
+{% block title %}Historique des ventes{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Historique des ventes</h3>
+    <div class="text-muted small">Montants en <strong>FCFA</strong></div>
+  </div>
+
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-12 col-md-3"><input type="date" class="form-control" name="from" /></div>
+    <div class="col-12 col-md-3"><input type="date" class="form-control" name="to" /></div>
+    <div class="col-12 col-md-3"><input type="text" class="form-control" name="user" placeholder="Utilisateur" /></div>
+    <div class="col-12 col-md-3"><button class="btn btn-outline-primary w-100">Filtrer</button></div>
+  </form>
+
+  {% if ventes %}
+    <table class="table align-middle">
+      <thead><tr><th>Date</th><th>Produits</th><th class="text-end">Total (FCFA)</th><th>Utilisateur</th><th></th></tr></thead>
+      <tbody>
+      {% for v in ventes %}
+        <tr>
+          <td>{{ v.date_vente|date:"d/m/Y H:i" }}</td>
+          <td>{{ v.resume }}</td>
+          <td class="text-end">{{ v.total|floatformat:0 }} FCFA</td>
+          <td>{{ v.utilisateur_nom }}</td>
+          <td><a href="{% url 'sales:detail' v.id %}" class="btn btn-sm btn-outline-primary">Détail</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="alert alert-info mb-3">Données démo affichées (aucune vente réelle).</div>
+    <table class="table table-striped align-middle">
+      <thead><tr><th>Date</th><th>Produits</th><th class="text-end">Total (FCFA)</th><th>Utilisateur</th><th></th></tr></thead>
+      <tbody>
+        <tr><td>27/09/2025 14:30</td><td>Parfum Jasmin × 2</td><td class="text-end">30 000</td><td>Admin</td><td><a href="#" class="btn btn-sm btn-outline-primary">Détail</a></td></tr>
+        <tr><td>27/09/2025 15:00</td><td>Encens Bois de Santal × 1</td><td class="text-end">5 000</td><td>Vendeur1</td><td><a href="#" class="btn btn-sm btn-outline-primary">Détail</a></td></tr>
+        <tr><td>27/09/2025 15:15</td><td>Brume Vanille × 3</td><td class="text-end">30 000</td><td>Admin</td><td><a href="#" class="btn btn-sm btn-outline-primary">Détail</a></td></tr>
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}
