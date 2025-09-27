@@ -7,12 +7,11 @@
   });
 })();
 
-/* --- thème clair/sombre (rotation subtile icône) --- */
+/* --- thème clair/sombre --- */
 (function(){
   const root = document.documentElement;
   const key  = "theme";
   const btn  = document.getElementById("themeToggle");
-
   function apply(theme){
     if(!theme){
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -26,16 +25,10 @@
       btn.setAttribute("title", theme === "dark" ? "Mode clair" : "Mode sombre");
     }
   }
-
   apply(localStorage.getItem(key));
-
   btn?.addEventListener("click", () => {
     const next = (root.getAttribute("data-theme") === "dark") ? "light" : "dark";
-    localStorage.setItem(key, next);
-    // petite rotation
-    btn.classList.add("theme-rot");
-    setTimeout(() => btn.classList.remove("theme-rot"), 250);
-    apply(next);
+    localStorage.setItem(key, next); apply(next);
   });
 })();
 

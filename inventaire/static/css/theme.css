@@ -1,22 +1,153 @@
+/* ========== Variables ========== */
 :root{
-  --bs-body-bg: #f8fbff;
-  --brand-blue-600: #3c7cff;
+  --nav-h: 56px;
+
+  --sbw-collapsed: 64px;
+  --sbw-expanded: 240px;
+
+  --page-bg: #f7f8fa;
+  --surface: #ffffff;
+  --card-border: #e8edf3;
+  --text: #111;
+  --muted: #6b7a90;
+  --hover: #f2f5f9;
+  --primary: #0d6efd;
+
+  --nav-bg: rgba(255,255,255,.72); /* translucide clair */
+  --nav-border: #e8edf3;          /* ligne grise sous navbar */
 }
-.text-primary{ color: var(--brand-blue-600) !important; }
-.btn-primary{ background: var(--brand-blue-600); border-color: var(--brand-blue-600); }
-.btn-outline-primary{ color: var(--brand-blue-600); border-color: var(--brand-blue-600); }
-.btn-outline-primary:hover{ background: var(--brand-blue-600); color:#fff; }
 
-.card{ border-radius: 1rem; }
-.btn, .form-control, .form-select{ border-radius: .8rem; }
+[data-theme="dark"]{
+  --page-bg: #111317;
+  --surface: #151922;
+  --card-border: #1d2330;
+  --text: #e5e7eb;
+  --muted: #9aa4b2;
+  --hover: #1a2130;
+  --primary: #3b82f6;
 
-.sidebar-wrapper{ top: 56px; } /* ajuste si ta navbar change de hauteur */
-.app-sidebar .list-group-item{ border: 0; border-radius: .6rem; margin: .125rem 0; }
-.app-sidebar .list-group-item:hover{ background-color: #f1f5ff; }
-/* Sidebar width/spacing fix */
-.app-sidebar .list-group-item { background:#f7faff; }
-.app-sidebar .list-group-item.active,
-.app-sidebar .list-group-item:hover { background:#eef4ff; }
+  --nav-bg: rgba(17,19,23,.55);  /* translucide sombre */
+  --nav-border: #222a38;
+}
 
-/* Product cards */
-.price{ font-weight:600; }
+/* ========== Reset layout ========== */
+html, body { height: 100%; margin:0; padding:0; }
+.app-body{ background: var(--page-bg); color: var(--text); }
+
+/* ========== Navbar (fixe, translucide, blur) ========== */
+.app-navbar{
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  background: var(--nav-bg) !important;
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  border-bottom: 1px solid var(--nav-border);   /* ligne grise conservée */
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  z-index: 1050;
+}
+
+.app-navbar .navbar-brand{ font-weight: 600; letter-spacing:.2px; }
+.app-navbar .theme-btn,
+.app-navbar .dropdown > .btn{
+  border: 1px solid var(--card-border);
+  background: var(--surface);
+  border-radius: 9999px;
+  padding: .375rem .75rem;
+  transition: background .15s ease, border-color .15s ease, transform .25s ease;
+}
+.app-navbar .theme-btn:hover,
+.app-navbar .dropdown > .btn:hover{
+  background: var(--hover);
+  border-color: var(--hover);
+}
+
+/* rotation subtile de l’icône du thème */
+.theme-rot { transform: rotate(60deg); }
+
+/* avatar cercle */
+.avatar-circle{
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--hover); color: var(--text); font-weight: 700; font-size: .9rem;
+}
+
+/* menu */
+.app-navbar .dropdown-menu{
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 24px rgba(16,24,40,.08);
+}
+
+/* ========== Shell (rail + contenu) ========== */
+.app-shell{ position: relative; display: flex; }
+
+/* contenu poussé par le rail + dégagement sous navbar */
+.app-main{
+  flex: 1;
+  min-height: calc(100vh - var(--nav-h));
+  padding: 1.25rem;
+  margin-left: var(--sbw-collapsed);
+  padding-top: calc(var(--nav-h) + 12px); /* pas de chevauchement */
+  transition: margin .2s ease;
+}
+
+/* Sidebar rail fixe */
+.app-sidebar{
+  position: fixed;
+  top: var(--nav-h); left: 0; bottom: 0;
+  width: var(--sbw-collapsed);
+  background: var(--surface);
+  border-right: 1px solid var(--card-border);
+  overflow-x: hidden;
+  transition: width .2s ease;
+  z-index: 1000;
+}
+
+/* Au survol : élargir la sidebar + pousser le contenu */
+.app-sidebar:hover{ width: var(--sbw-expanded); }
+.app-sidebar:hover ~ .app-main{ margin-left: var(--sbw-expanded); }
+
+/* Liens de la sidebar */
+.app-sidebar .nav-link{
+  color: var(--text);
+  font-weight: 500;
+  border-radius: .5rem;
+  margin: .125rem .5rem;
+  white-space: nowrap;
+  display:flex; align-items:center;
+  padding:.5rem .75rem;
+}
+.app-sidebar .nav-link:hover{ background: var(--hover); color: var(--primary); }
+.app-sidebar .nav-link.active{ background: var(--primary); color: #fff; }
+
+/* Icônes */
+.app-sidebar .fa{ font-size: 1.05rem; color: var(--text); }
+.app-sidebar .nav-link.active .fa{ color: #fff; }
+
+/* Libellé masqué hors survol */
+.app-sidebar .label{ transition: opacity .15s ease, margin .15s ease; }
+.app-sidebar:not(:hover) .label{ opacity:0; margin-left:-4px; width:0; overflow:hidden; }
+
+/* ========== Contenu / cartes ========== */
+main{
+  background: var(--surface);
+  border-radius: .5rem;
+  box-shadow: 0 2px 8px rgba(16,24,40,.06);
+}
+.card{ border: 1px solid var(--card-border); border-radius:.5rem; }
+.card .btn{ border-radius:.5rem; }
+
+/* ========== Footer / toasts ========== */
+.app-footer{ color: var(--muted); }
+.toast{ border-left: 4px solid var(--primary); }
+
+/* ========== Dark extras ========== */
+[data-theme="dark"] .app-sidebar{ border-right-color:#222a38; }
+[data-theme="dark"] .card{ border-color:#1d2330; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
+
+/* Mode invité (pas de sidebar) */
+.guest-main{
+  min-height: calc(100vh - var(--nav-h));
+  padding: 1.25rem;
+  padding-top: calc(var(--nav-h) + 12px); /* dégage sous la navbar fixe */
+}
+

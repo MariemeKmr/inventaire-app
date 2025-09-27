@@ -1,21 +1,17 @@
 ﻿{% extends "base.html" %}
-{% block title %}Produits{% endblock %}
-
+{% block title %}Produits — Inventaire{% endblock %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h3 class="mb-0">Produits</h3>
-  <div class="d-flex gap-2">
-    <a href="{% url 'products:new' %}" class="btn btn-primary">Nouveau produit</a>
-  </div>
-</div>
 
-<!-- Filtres catégories (badges cliquables) -->
-<div class="mb-3">
-  {% for c in categories %}
-    <a class="badge rounded-pill text-bg-light p-2 me-1 mb-1" href="?cat={{ c.id }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ c.nom }}</a>
-  {% empty %}
-    <span class="text-muted">Aucune catégorie</span>
-  {% endfor %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <h1 class="h4 mb-0">Produits</h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'products:list' %}">
+      <i class="fa-solid fa-rotate-right me-1"></i> Rafraîchir
+    </a>
+    <a class="btn btn-primary" href="{% url 'products:new' %}">
+      <i class="fa-solid fa-plus me-1"></i> Nouveau produit
+    </a>
+  </div>
 </div>
 
 <!-- Grille produits -->

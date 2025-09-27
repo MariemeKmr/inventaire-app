@@ -1,0 +1,121 @@
+/* ========== Variables ========== */
+:root{
+  --sbw-collapsed: 64px;
+  --sbw-expanded: 240px;
+  --page-bg: #f7f8fa;
+  --surface: #ffffff;
+  --card-border: #eef1f4;
+  --text: #111;
+  --muted: #6b7a90;
+  --hover: #f2f5f9;
+  --primary: #0d6efd;
+}
+
+[data-theme="dark"]{
+  --page-bg: #111317;
+  --surface: #151922;
+  --card-border: #1d2330;
+  --text: #e5e7eb;
+  --muted: #9aa4b2;
+  --hover: #1a2130;
+  --primary: #3b82f6;
+}
+
+/* ========== Layout global ========== */
+html, body { height: 100%; }
+.app-body{ background: var(--page-bg); color: var(--text); }
+
+/* ========== Navbar ========== */
+.app-navbar{
+  background: transparent !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  padding-top: .75rem;
+  padding-bottom: .5rem;
+}
+
+/* ========== Shell (rail + contenu) ========== */
+.app-shell{ position: relative; display: flex; }
+.app-main{
+  flex: 1;
+  min-height: calc(100vh - 56px);
+  padding: 1.25rem;
+  margin-left: var(--sbw-collapsed);
+  transition: margin .2s ease;
+}
+
+/* Sidebar rail fixe */
+.app-sidebar{
+  position: fixed;
+  top: 56px; left: 0; bottom: 0;
+  width: var(--sbw-collapsed);
+  background: var(--surface);
+  border-right: 1px solid var(--card-border);
+  overflow-x: hidden;
+  transition: width .2s ease;
+  z-index: 1000;
+}
+
+/* Au survol : élargir la sidebar + pousser le contenu */
+.app-sidebar:hover{ width: var(--sbw-expanded); }
+.app-sidebar:hover ~ .app-main{ margin-left: var(--sbw-expanded); }
+
+/* Liens de la sidebar (texte noir par défaut) */
+.app-sidebar .nav-link{
+  color: var(--text);
+  font-weight: 500;
+  border-radius: .5rem;
+  margin: .125rem .5rem;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  padding: .5rem .75rem;
+}
+.app-sidebar .nav-link:hover{
+  background: var(--hover);
+  color: var(--primary);
+}
+.app-sidebar .nav-link.active{
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Icônes */
+.app-sidebar .fa{
+  font-size: 1.05rem;
+  color: var(--text);
+}
+.app-sidebar .nav-link.active .fa{ color: #fff; }
+
+/* Libellé masqué hors survol */
+.app-sidebar .label{
+  transition: opacity .15s ease, margin .15s ease;
+}
+.app-sidebar:not(:hover) .label{
+  opacity: 0;
+  margin-left: -4px;
+  width: 0;
+  overflow: hidden;
+}
+
+/* ========== Contenu / cartes ========== */
+main{
+  background: var(--surface);
+  border-radius: .5rem;
+  box-shadow: 0 2px 8px rgba(16,24,40,.06);
+}
+.card{
+  border: 1px solid var(--card-border);
+  border-radius: .5rem;
+}
+.card .btn{ border-radius: .5rem; }
+
+/* ========== Footer ========== */
+.app-footer{ color: var(--muted); }
+
+/* ========== Toasts ========== */
+.toast{ border-left: 4px solid var(--primary); }
+
+/* ========== Mode sombre : extras ========== */
+[data-theme="dark"] .app-sidebar{ border-right-color: #222a38; }
+[data-theme="dark"] .card{ border-color: #1d2330; box-shadow: 0 2px 10px rgba(0,0,0,.3); }

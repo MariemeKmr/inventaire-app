@@ -1,29 +1,45 @@
-﻿<nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top">
-  <div class="container-fluid px-3">
-    <a class="navbar-brand fw-bold text-primary" href="{% url 'dashboard' %}">Inventaire</a>
-    <div class="ms-auto d-flex align-items-center">
+﻿<nav class="navbar navbar-light app-navbar fixed-top px-3">
+  <div class="container-fluid px-0">
+    <!-- Marque -->
+    <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
+      <span class="brand-logo" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 3h8v8H3V3zm0 10h8v8H3v-8zm10-10h8v8h-8V3zm0 10h8v8h-8v-8z"/>
+        </svg>
+      </span>
+      <span class="fw-semibold">Inventaire</span>
+    </a>
+
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <!-- Toggle thème -->
+      <button id="themeToggle"
+              class="btn btn-outline-secondary btn-sm theme-btn"
+              type="button"
+              aria-label="Basculer thème">
+        <i class="fa-solid fa-moon"></i>
+      </button>
+
       {% if request.user.is_authenticated %}
-      <div class="dropdown">
-        <a class="btn btn-outline-secondary dropdown-toggle" href="#" data-bs-toggle="dropdown">
-          {{ request.user.get_full_name|default:request.user.username }}
-        </a>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <li><a class="dropdown-item" href="/admin/">Administration</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li><a class="dropdown-item" href="{% url 'admin:logout' %}?next=/admin/login/">Se dÃ©connecter</a></li>
-        </ul>
-      </div>
+        <!-- Menu utilisateur avec avatar initiale -->
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-2"
+                  data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="avatar-circle">
+              {{ request.user.first_name|default:request.user.username|slice:":1"|upper }}
+            </span>
+            <span class="d-none d-sm-inline">{{ request.user.first_name|default:request.user.username }}</span>
+            <i class="fa-solid fa-chevron-down small opacity-75"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fa-solid fa-house me-2"></i>Accueil</a></li>
+            <li><a class="dropdown-item disabled" href="#"><i class="fa-regular fa-user me-2"></i>Profil</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2"></i>Déconnexion</a></li>
+          </ul>
+        </div>
       {% else %}
-      <a class="btn btn-primary" href="/admin/login/">Se connecter</a>
+        <a class="btn btn-primary btn-sm" href="{% url 'accounts:login' %}">Connexion</a>
       {% endif %}
     </div>
-      {% if request.user.is_authenticated %}
-      <a class="btn btn-outline-secondary btn-sm" href="{% url "accounts:logout" %}">Déconnexion</a>
-    {% else %}
-      <a class="btn btn-primary btn-sm" href="{% url "accounts:login" %}">Connexion</a>
-    {% endif %}
-</div>
+  </div>
 </nav>
-
-
-
