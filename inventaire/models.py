@@ -1,220 +1,165 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
+from django.core.validators import MinValueValidator
 
 
-class Alerte(models.Model):
-    type = models.CharField(max_length=7)
-    produit = models.ForeignKey('Produit', models.DO_NOTHING, blank=True, null=True)
-    niveau = models.CharField(max_length=4)
-    message = models.TextField()
-    resolue = models.IntegerField()
-    created_at = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'alerte'
-
-
-class AuthGroup(models.Model):
-    name = models.CharField(unique=True, max_length=150)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_group'
-
-
-class AuthGroupPermissions(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    group = models.ForeignKey(AuthGroup, models.DO_NOTHING)
-    permission = models.ForeignKey('AuthPermission', models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_group_permissions'
-        unique_together = (('group', 'permission'),)
-
-
-class AuthPermission(models.Model):
-    name = models.CharField(max_length=255)
-    content_type = models.ForeignKey('DjangoContentType', models.DO_NOTHING)
-    codename = models.CharField(max_length=100)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_permission'
-        unique_together = (('content_type', 'codename'),)
-
-
-class AuthUser(models.Model):
-    password = models.CharField(max_length=128)
-    last_login = models.DateTimeField(blank=True, null=True)
-    is_superuser = models.IntegerField()
-    username = models.CharField(unique=True, max_length=150)
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
-    email = models.CharField(max_length=254)
-    is_staff = models.IntegerField()
-    is_active = models.IntegerField()
-    date_joined = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user'
-
-
-class AuthUserGroups(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
-    group = models.ForeignKey(AuthGroup, models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user_groups'
-        unique_together = (('user', 'group'),)
-
-
-class AuthUserUserPermissions(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
-    permission = models.ForeignKey(AuthPermission, models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'auth_user_user_permissions'
-        unique_together = (('user', 'permission'),)
-
-
+# ---------- Categorie ----------
 class Categorie(models.Model):
-    nom = models.CharField(unique=True, max_length=100)
+    nom = models.CharField(max_length=100, unique=True)
 
     class Meta:
-        managed = False
-        db_table = 'categorie'
+        db_table = "categorie"
+
+    def __str__(self):
+        return self.nom
 
 
+# ---------- Utilisateur (métier, différent du User Django d'auth) ----------
+class Utilisateur(models.Model):
+    nom = models.CharField(max_length=150)
+    email = models.CharField(max_length=150, unique=True)
+    mot_de_passe = models.CharField(max_length=128)
+    is_admin = models.IntegerField()
+
+    class Meta:
+        db_table = "utilisateur"
+
+    def __str__(self):
+        return self.nom
+
+
+# ---------- Produit ----------
+class Produit(models.Model):
+    nom = models.CharField(max_length=200)
+    # FK sur l'ID ENTIER de Categorie (PAS sur le nom) -> pas de to_field !
+    categorie = models.ForeignKey(
+        Categorie,
+        on_delete=models.PROTECT,
+        related_name="produits",
+        null=True, blank=True,          # rends-le obligatoire plus tard si tu veux
+    )
+    prix_achat = models.DecimalField(max_digits=12, decimal_places=2,
+                                     validators=[MinValueValidator(0)])
+    prix_vente = models.DecimalField(max_digits=12, decimal_places=2,
+                                     validators=[MinValueValidator(0)])
+    quantite = models.PositiveIntegerField(default=0)
+    image_file = models.ImageField(upload_to="products/", blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
+    barcode = models.CharField(max_length=128, blank=True, null=True, unique=False)
+    date_ajout = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "produit"
+        ordering = ["-date_ajout"]
+        indexes = [
+            models.Index(fields=["nom"], name="ix_produit_nom"),
+            models.Index(fields=["categorie"], name="ix_produit_categorie"),
+        ]
+        # Pour forcer prix_vente > prix_achat côté DB (MySQL 8+/MariaDB 10.4+) :
+        # constraints = [
+        #     models.CheckConstraint(check=models.Q(prix_achat__gte=0), name="chk_prix_achat_ge_0"),
+        #     models.CheckConstraint(check=models.Q(prix_vente__gt=models.F("prix_achat")), name="chk_prix_vente_gt_achat"),
+        #     models.CheckConstraint(check=models.Q(quantite__gte=0), name="chk_quantite_ge_0"),
+        # ]
+
+    def __str__(self):
+        return self.nom
+
+
+# ---------- Dette ----------
 class Dette(models.Model):
     nom_client = models.CharField(max_length=150)
     telephone = models.CharField(max_length=50, blank=True, null=True)
-    montant = models.DecimalField(max_digits=10, decimal_places=2)
+    montant = models.DecimalField(max_digits=10, decimal_places=2,
+                                  validators=[MinValueValidator(0.01)])
     date_dette = models.DateField()
     produits_txt = models.TextField(blank=True, null=True)
     remarques = models.TextField(blank=True, null=True)
-    statut = models.CharField(max_length=8)
+    statut = models.CharField(max_length=8)  # "EN_COURS" / "PARTIEL" / "PAYEE"
 
     class Meta:
-        managed = False
-        db_table = 'dette'
+        db_table = "dette"
+        indexes = [
+            models.Index(fields=["statut", "date_dette"], name="ix_dette_statut_date"),
+            models.Index(fields=["date_dette"], name="ix_dette_date"),
+        ]
+
+    def __str__(self):
+        return f"{self.nom_client} - {self.montant}€"
 
 
-class DjangoAdminLog(models.Model):
-    action_time = models.DateTimeField()
-    object_id = models.TextField(blank=True, null=True)
-    object_repr = models.CharField(max_length=200)
-    action_flag = models.PositiveSmallIntegerField()
-    change_message = models.TextField()
-    content_type = models.ForeignKey('DjangoContentType', models.DO_NOTHING, blank=True, null=True)
-    user = models.ForeignKey(AuthUser, models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'django_admin_log'
-
-
-class DjangoContentType(models.Model):
-    app_label = models.CharField(max_length=100)
-    model = models.CharField(max_length=100)
+# ---------- Paiement de dette ----------
+class PaiementDette(models.Model):
+    dette = models.ForeignKey(Dette, on_delete=models.CASCADE)
+    montant = models.DecimalField(max_digits=10, decimal_places=2,
+                                  validators=[MinValueValidator(0.01)])
+    date_paiement = models.DateTimeField()
 
     class Meta:
-        managed = False
-        db_table = 'django_content_type'
-        unique_together = (('app_label', 'model'),)
+        db_table = "paiement_dette"
+        indexes = [
+            models.Index(fields=["dette"], name="ix_pay_dette"),
+        ]
+
+    def __str__(self):
+        return f"Paiement {self.montant}€ sur dette #{self.dette_id}"
 
 
-class DjangoMigrations(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    app = models.CharField(max_length=255)
-    name = models.CharField(max_length=255)
-    applied = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'django_migrations'
-
-
-class DjangoSession(models.Model):
-    session_key = models.CharField(primary_key=True, max_length=40)
-    session_data = models.TextField()
-    expire_date = models.DateTimeField()
+# ---------- Vente ----------
+class Vente(models.Model):
+    produit = models.ForeignKey(Produit, on_delete=models.PROTECT)
+    quantite = models.IntegerField(validators=[MinValueValidator(1)])
+    total = models.DecimalField(max_digits=10, decimal_places=2,
+                                validators=[MinValueValidator(0)])
+    date_vente = models.DateTimeField(auto_now_add=True)
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.PROTECT)
+    user_name_snapshot = models.CharField(max_length=150, blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'django_session'
+        db_table = "vente"
+        indexes = [
+            models.Index(fields=["produit", "date_vente"], name="ix_vente_prod_date"),
+            models.Index(fields=["date_vente"], name="ix_vente_date"),
+            models.Index(fields=["utilisateur", "date_vente"], name="ix_vente_user_date"),
+        ]
+
+    def __str__(self):
+        return f"Vente #{self.id} - {self.quantite} x {self.produit}"
 
 
+# ---------- Historique ----------
 class Historique(models.Model):
     type_action = models.CharField(max_length=50)
-    utilisateur = models.ForeignKey('Utilisateur', models.DO_NOTHING, blank=True, null=True)
+    utilisateur = models.ForeignKey(Utilisateur, on_delete=models.SET_NULL,
+                                    blank=True, null=True)
     utilisateur_email = models.CharField(max_length=150, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     date_action = models.DateTimeField()
 
     class Meta:
-        managed = False
-        db_table = 'historique'
+        db_table = "historique"
+        indexes = [
+            models.Index(fields=["date_action"], name="ix_historique_date"),
+        ]
+
+    def __str__(self):
+        return f"{self.type_action} - {self.date_action:%Y-%m-%d %H:%M}"
 
 
-class PaiementDette(models.Model):
-    dette = models.ForeignKey(Dette, models.DO_NOTHING)
-    montant = models.DecimalField(max_digits=10, decimal_places=2)
-    date_paiement = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'paiement_dette'
-
-
-class Produit(models.Model):
-    barcode = models.CharField(unique=True, max_length=100, blank=True, null=True)
-    nom = models.CharField(max_length=200)
-    prix_achat = models.DecimalField(max_digits=10, decimal_places=2)
-    prix_vente = models.DecimalField(max_digits=10, decimal_places=2)
-    quantite = models.IntegerField()
-    image_url = models.CharField(max_length=500, blank=True, null=True)
-    date_ajout = models.DateTimeField()
-    categorie = models.ForeignKey(Categorie, models.DO_NOTHING, blank=True, null=True)
+# ---------- Alerte ----------
+class Alerte(models.Model):
+    type = models.CharField(max_length=7)   # "REAPPRO" / "INFO"
+    produit = models.ForeignKey(Produit, on_delete=models.SET_NULL,
+                                blank=True, null=True)
+    niveau = models.CharField(max_length=4)  # "INFO" / "WARN" / "CRIT"
+    message = models.TextField()
+    resolue = models.IntegerField()
+    created_at = models.DateTimeField()
 
     class Meta:
-        managed = False
-        db_table = 'produit'
+        db_table = "alerte"
+        indexes = [
+            models.Index(fields=["produit", "created_at"], name="ix_alerte_prod_date"),
+        ]
 
-
-class Utilisateur(models.Model):
-    nom_complet = models.CharField(max_length=150)
-    email = models.CharField(unique=True, max_length=150)
-    mot_de_passe = models.CharField(max_length=255)
-    role = models.CharField(max_length=7)
-    actif = models.IntegerField()
-    date_creation = models.DateTimeField()
-
-    class Meta:
-        managed = False
-        db_table = 'utilisateur'
-
-
-class Vente(models.Model):
-    produit = models.ForeignKey(Produit, models.DO_NOTHING)
-    quantite = models.IntegerField()
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-    date_vente = models.DateTimeField()
-    utilisateur = models.ForeignKey(Utilisateur, models.DO_NOTHING)
-    user_name_snapshot = models.CharField(max_length=150, blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'vente'
+    def __str__(self):
+        return f"[{self.niveau}] {self.type}"

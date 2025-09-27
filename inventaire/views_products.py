@@ -1,63 +1,117 @@
 ﻿from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
-
+from django.urls import reverse
 from .forms_products import ProductForm
+from .models import Produit, Categorie
+from django.db.models import Q
+from django.core.paginator import Paginator
+# views_products.py
 
-@login_required()
+@login_required(login_url="/admin/login/")
 def list_products(request):
-    q = (request.GET.get("q") or "").strip().lower()
+    q = (request.GET.get("q") or "").strip()
+    cat = (request.GET.get("cat") or "").strip()     # valeur = nom de la catégorie (PK texte)
+    sort = (request.GET.get("sort") or "-date_ajout").strip()
+    page_number = request.GET.get("page") or 1
+    per_page = int(request.GET.get("per_page") or 12)
+    low_stock_threshold = 3
 
-    # --- DEMO TEMPORAIRE (à remplacer par requêtes ORM) ---
-    categories = [
-        {"id": 1, "nom": "Parfums"},
-        {"id": 2, "nom": "Encens"},
-        {"id": 3, "nom": "Brumes"},
-    ]
-    products = [
-        {"id": 101, "nom": "Musc Blanc", "prix_vente": 5000, "quantite": 3, "image_url": "https://via.placeholder.com/300x200?text=Musc", "categorie": categories[0]},
-        {"id": 102, "nom": "Oud Royal", "prix_vente": 12000, "quantite": 10, "image_url": "https://via.placeholder.com/300x200?text=Oud", "categorie": categories[0]},
-        {"id": 201, "nom": "Encens Bakhoor", "prix_vente": 3000, "quantite": 1, "image_url": "https://via.placeholder.com/300x200?text=Bakhoor", "categorie": categories[1]},
-        {"id": 301, "nom": "Brume Vanille", "prix_vente": 3500, "quantite": 8, "image_url": "https://via.placeholder.com/300x200?text=Vanille", "categorie": categories[2]},
-    ]
+    # Base queryset + jointure catégorie
+    qs = Produit.objects.select_related("categorie")
+
+    # Recherche texte (nom produit, code-barres, nom catégorie)
     if q:
-        products = [p for p in products if q in p["nom"].lower()]
+        qs = qs.filter(
+            Q(nom__icontains=q) |
+            Q(barcode__icontains=q) |
+            Q(categorie__nom__icontains=q)
+        )
 
-    class Page: pass
-    page_obj = Page()
+    # Filtre catégorie (PK = nom)
+    if cat:
+        qs = qs.filter(categorie__nom=cat)
+
+    # Tri simple (sécurise un minimum les champs autorisés)
+    allowed_sorts = {"nom", "-nom", "date_ajout", "-date_ajout", "prix_vente", "-prix_vente", "quantite", "-quantite"}
+    if sort not in allowed_sorts:
+        sort = "-date_ajout"
+    qs = qs.order_by(sort, "-pk")
+
+    # Pagination
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page_number)
+
+    # Transforme en dicts compatibles avec ton template démo
+    products = []
+    for p in page_obj.object_list:
+        # image: priorise l'upload si présent, sinon l'URL stockée
+        img = None
+        if getattr(p, "image_file", None):
+            try:
+                if p.image_file:
+                    img = p.image_file.url
+            except Exception:
+                img = None
+        if not img:
+            img = p.image_url
+
+        products.append({
+            "id": p.pk,
+            "nom": p.nom,
+            "prix_vente": p.prix_vente,
+            "quantite": p.quantite,
+            "image_url": img,
+            "categorie": {
+                # PK texte = nom ; on expose "id" pour rester compatible
+                "id": p.categorie_id,  # == nom si non nul
+                "nom": p.categorie.nom if p.categorie else None,
+            },
+        })
+
+    # On remplace l'object_list par nos dicts (le reste du Page est intact: has_next, etc.)
     page_obj.object_list = products
-    # --- FIN DEMO ---
+
+    # Liste des catégories pour les filtres (clé "id" = nom)
+    categories = [{"id": c.nom, "nom": c.nom} for c in Categorie.objects.order_by("nom")]
 
     ctx = {
         "categories": categories,
         "page_obj": page_obj,
-        "low_stock_threshold": 3,
+        "low_stock_threshold": low_stock_threshold,
+        "q": q,
+        "selected_cat": cat,
+        "sort": sort,
+        "per_page": per_page,
     }
     return render(request, "products/list.html", ctx)
 
-@login_required()
-def new_product(request):
-    """
-    Stub MVP:
-    - Affiche le formulaire
-    - Valide les règles (pv > pa)
-    - TODO backend (Idrissa):
-        * Traiter image_file -> Remove.bg -> Cloudinary -> image_url
-        * Créer Catégorie si nécessaire
-        * Créer Produit (ORM) puis rediriger vers products:list
-        * Log Historique (produit_ajout)
-    """
+@login_required(login_url="/admin/login/")
+def product_create(request):
     if request.method == "POST":
         form = ProductForm(request.POST, request.FILES)
         if form.is_valid():
-            # PLACEHOLDER: ici on ne persiste pas encore (attend le backend)
-            cd = form.cleaned_data
-            messages.success(request, f"Produit “{cd.get('nom')}” prêt à être créé (stub).")
+            produit = form.save(commit=False)  # Crée une instance mais ne sauvegarde pas encore
+            produit.save()  # Sauvegarde dans la base de données
+            messages.success(request, "Produit enregistré avec succès.")
             return redirect("products:list")
         else:
-            messages.error(request, "Corrige les erreurs du formulaire.")
+            messages.error(request, "Veuillez corriger les erreurs.")
     else:
         form = ProductForm()
 
     return render(request, "products/new.html", {"form": form})
 
+@login_required
+def add_product(request):
+    if request.method == "POST":
+        form = ProductForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Produit enregistré avec succès.")
+            return redirect("products:list")
+        else:
+            messages.error(request, "Corrige les erreurs du formulaire.")
+    else:
+        form = ProductForm()
+    return render(request, "products/add.html", {"form": form})
