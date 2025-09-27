@@ -78,17 +78,7 @@ Importer le script SQL **sql/inventaire.sql** dans MariaDB/MySQL.
 Mettre à jour **inventaire_app/settings.py** → section **DATABASES**.
 
 ### 5. Variables d’environnement
-Créer un fichier .env (non versionné) avec :
-```bash
-DB_NAME=inventaire
-DB_USER=root
-DB_PASSWORD=
-DB_HOST=127.0.0.1
-DB_PORT=3306
-
-CLOUDINARY_URL=cloudinary://...
-REMOVEBG_API_KEY=...
-```
+Créer un fichier .env (non versionné).
 
 ### 6. Migrations et superuser
 ```bash
