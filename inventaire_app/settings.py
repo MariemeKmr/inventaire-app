@@ -165,3 +165,12 @@ LOGOUT_REDIRECT_URL = "accounts:login"
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "accounts:login"
+
+# Pour le dev : affiche les e-mails dans la console
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "Inventaire <no-reply@inventaire.local>"
+
+# Login / logout
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "accounts:login"

@@ -1,32 +1,132 @@
-﻿{% extends 'base.html' %}
+﻿{% extends "base.html" %}
 {% block title %}Tableau de bord{% endblock %}
+
 {% block content %}
-<div class="row g-3">
-  <div class="col-12 col-md-8">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h5 class="card-title">Raccourcis</h5>
-        <div class="d-grid d-md-flex gap-2">
-          <a class="btn btn-primary btn-lg" href="#">Nouvelle vente (S)</a>
-          <a class="btn btn-outline-primary btn-lg" href="#">Produits</a>
-          <a class="btn btn-outline-primary btn-lg" href="#">Dettes</a>
-          <a class="btn btn-outline-primary btn-lg" href="#">Stats</a>
-          <a class="btn btn-outline-primary btn-lg" href="#">Historique</a>
-        </div>
+
+<!-- En-tête -->
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div class="d-flex align-items-center gap-3">
+    <div class="avatar-circle" style="width:40px;height:40px;font-size:1rem;">
+      {{ request.user.first_name|default:request.user.username|first|upper }}
+    </div>
+    <div>
+      <h5 class="mb-0">Bonjour {{ request.user.first_name|default:request.user.username }}</h5>
+      <div class="text-muted small">Vue d’ensemble de votre activité</div>
+    </div>
+  </div>
+
+  <!-- petite barre d’actions (pas des “raccourcis” textuels) -->
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'sales:quick' %}" class="btn btn-primary">
+      <i class="fa-solid fa-bolt me-2"></i> Nouvelle vente
+    </a>
+    <a href="{% url 'products:new' %}" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-plus me-2"></i> Produit
+    </a>
+    <a href="{% url 'stats:index' %}" class="btn btn-outline-secondary">
+      <i class="fa-solid fa-chart-line me-2"></i> Stats
+    </a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card p-3">
+      <div class="text-muted small">CA aujourd’hui</div>
+      <div class="d-flex align-items-end justify-content-between">
+        <h3 class="mb-0">{{ kpi_today_revenue|default:0 }} CFA</h3>
+        <i class="fa-solid fa-sack-dollar text-primary"></i>
       </div>
     </div>
   </div>
-  <div class="col-12 col-md-4">
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <h6 class="text-muted mb-2">VisibilitÃ© immÃ©diate</h6>
-        <div class="d-flex justify-content-between"><span>Stock faible</span><span class="badge text-bg-warning">{{ low_stock_count|default:'0' }}</span></div>
-        <div class="d-flex justify-content-between mt-2"><span>Dettes en cours</span><span class="badge text-bg-danger">{{ open_debts_count|default:'0' }}</span></div>
-        <div class="d-flex justify-content-between mt-2"><span>CA (jour)</span><strong>{{ revenue_today|default:'0 CFA' }}</strong></div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card p-3">
+      <div class="text-muted small">CA cette semaine</div>
+      <div class="d-flex align-items-end justify-content-between">
+        <h3 class="mb-0">{{ kpi_week_revenue|default:0 }} CFA</h3>
+        <i class="fa-solid fa-calendar-week text-primary"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card p-3">
+      <div class="text-muted small">CA ce mois</div>
+      <div class="d-flex align-items-end justify-content-between">
+        <h3 class="mb-0">{{ kpi_month_revenue|default:0 }} CFA</h3>
+        <i class="fa-solid fa-calendar-days text-primary"></i>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-lg-3">
+    <div class="card p-3">
+      <div class="text-muted small">Dettes ouvertes</div>
+      <div class="d-flex align-items-end justify-content-between">
+        <h3 class="mb-0">{{ debts_open_count|default:0 }}</h3>
+        <i class="fa-solid fa-file-invoice-dollar text-primary"></i>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Colonnes : Stock faible / Ventes récentes -->
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+        <h6 class="mb-0">Stock faible</h6>
+        <a href="{% url 'products:list' %}" class="small text-decoration-none">Voir tous</a>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for p in low_stock_products %}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div class="me-3">
+              <div class="fw-semibold">{{ p.name }}</div>
+              <div class="text-muted small">{{ p.category }}</div>
+            </div>
+            <span class="badge rounded-pill bg-warning text-dark">
+              {{ p.stock }} en stock
+            </span>
+          </div>
+        {% empty %}
+          <div class="p-3 text-muted">Aucun produit en stock critique.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card">
+      <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
+        <h6 class="mb-0">Ventes récentes</h6>
+        <a href="{% url 'history:index' %}" class="small text-decoration-none">Historique</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="small text-muted">
+            <tr>
+              <th>Date</th>
+              <th>Article</th>
+              <th class="text-end">Qté</th>
+              <th class="text-end">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recent_sales %}
+              <tr>
+                <td class="small">{{ s.date|date:"d/m H:i" }}</td>
+                <td>{{ s.product_name }}</td>
+                <td class="text-end">{{ s.qty }}</td>
+                <td class="text-end">{{ s.total }} CFA</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4" class="text-muted p-3">Pas encore de ventes aujourd’hui.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
-
-

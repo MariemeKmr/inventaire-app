@@ -8,6 +8,10 @@ db.sqlite3
 media/
 staticfiles/
 
+# Backups
+*.bak
+*.bak.*
+
 # IDE
 .vscode/
 .idea/
@@ -15,3 +19,20 @@ staticfiles/
 # System
 .DS_Store
 Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Backups
+*.bak
+*.bak.*
+
+# Environnement / OS / IDE
+.venv/
+env/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
