@@ -65,13 +65,25 @@
         </div>
         <div class="card-footer bg-transparent">
           <div class="d-flex gap-2">
-            <a class="btn btn-sm btn-outline-primary flex-grow-1"
-               href="{% url 'sales:quick' %}?q={{ p.nom|urlencode }}">
-              <i class="fa-solid fa-cart-shopping me-1"></i> Vendre
-            </a>
+            {% if p.quantite > 0 %}
+            <form method="post" action="{% url 'sales:cart_add' p.pk %}" class="flex-grow-1">
+              {% csrf_token %}
+              <input type="hidden" name="qty" value="1">
+              <input type="hidden" name="next" value="{{ request.path }}{{ request.META.QUERY_STRING|default:'' }}">
+              <button type="submit" class="btn btn-sm btn-primary w-100">
+                <i class="fa-solid fa-cart-plus me-1"></i> Panier
+              </button>
+            </form>
+            {% else %}
+            <button class="btn btn-sm btn-secondary flex-grow-1" disabled>Rupture</button>
+            {% endif %}
             {% if can_edit_products %}
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'products:edit' p.pk %}">Modifier</a>
-              <a class="btn btn-sm btn-outline-danger" href="{% url 'products:delete' p.pk %}">Supprimer</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'products:edit' p.pk %}">
+                <i class="fa-solid fa-pen"></i>
+              </a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'products:delete' p.pk %}">
+                <i class="fa-solid fa-trash"></i>
+              </a>
             {% endif %}
           </div>
         </div>
