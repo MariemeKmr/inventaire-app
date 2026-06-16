@@ -1,87 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Dette #{{ debt.id }}{% endblock %}
+{% block title %}Dette — {{ debt.nom_client }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h5 mb-0">Dette — {{ debt.nom_client }}</h1>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">{{ debt.nom_client }}</h4>
+    <span class="text-muted small">Fiche dette · Créée le {{ debt.date_dette }}</span>
+  </div>
   <div class="d-flex gap-2">
-    <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:list' %}">Retour</a>
-    <a class="btn btn-success btn-sm" href="{% url 'debts:pay' debt.id %}"><i class="fa-solid fa-plus me-1"></i> Ajouter un paiement</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:list' %}">← Retour</a>
+    {% if debt.statut != 'PAYEE' %}
+    <a class="btn btn-success btn-sm" href="{% url 'debts:pay' debt.id %}">
+      <i class="fa-solid fa-hand-holding-dollar me-1"></i> Ajouter un paiement
+    </a>
+    {% endif %}
     {% if request.user.is_staff %}
-      <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:edit' debt.id %}">Modifier</a>
-      <a class="btn btn-outline-danger btn-sm" href="{% url 'debts:delete' debt.id %}">Supprimer</a>
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:edit' debt.id %}">
+      <i class="fa-solid fa-pen me-1"></i> Modifier
+    </a>
+    <a class="btn btn-outline-danger btn-sm" href="{% url 'debts:delete' debt.id %}">
+      <i class="fa-solid fa-trash"></i>
+    </a>
     {% endif %}
   </div>
 </div>
 
 <div class="row g-3">
-  <div class="col-lg-5">
+
+  <!-- Infos dette -->
+  <div class="col-lg-4">
+    <div class="card p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="fw-bold fs-5">{{ debt.nom_client }}</div>
+          <div class="text-muted small">{{ debt.telephone|default:"Pas de téléphone" }}</div>
+        </div>
+        {% if debt.statut == 'PAYEE' %}
+          <span class="badge bg-success">Payée</span>
+        {% elif debt.statut == 'PARTIEL' %}
+          <span class="badge bg-info text-dark">Partiel</span>
+        {% else %}
+          <span class="badge bg-warning text-dark">En cours</span>
+        {% endif %}
+      </div>
+
+      <!-- Barre de progression -->
+      {% if debt.montant %}
+      {% widthratio debt.total_paye debt.montant 100 as pct %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+          <span>Progression</span><span>{{ pct }}%</span>
+        </div>
+        <div class="progress" style="height:8px;">
+          <div class="progress-bar bg-success" style="width:{{ pct }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-flex flex-column gap-2">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Montant total</span>
+          <span class="fw-semibold">{{ debt.montant|floatformat:0 }} FCFA</span>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Total payé</span>
+          <span class="fw-semibold text-success">{{ debt.total_paye|floatformat:0 }} FCFA</span>
+        </div>
+        <hr class="my-1">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted fw-semibold">Restant</span>
+          <span class="fw-bold {% if debt.restant > 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ debt.restant|floatformat:0 }} FCFA
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {% if debt.produits_txt or debt.remarques %}
     <div class="card p-3">
-      <div class="d-flex justify-content-between">
-        <div>
-          <div class="fw-semibold">{{ debt.nom_client }}</div>
-          <div class="text-muted">{{ debt.telephone|default:"—" }}</div>
-          <div class="small text-muted">Créée le {{ debt.date_dette }}</div>
-        </div>
-        <div>
-          {% if debt.statut == "PAYEE" %}
-            <span class="badge bg-success">PAYÉE</span>
-          {% elif debt.statut == "PARTIEL" %}
-            <span class="badge bg-info text-dark">PARTIEL</span>
-          {% else %}
-            <span class="badge bg-warning text-dark">EN COURS</span>
-          {% endif %}
-        </div>
-      </div>
-      <hr/>
-      <div class="d-grid gap-2">
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Montant</span><span class="fw-semibold">{{ debt.montant }} €</span>
-        </div>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Total payé</span><span class="fw-semibold">{{ debt.total_paye }} €</span>
-        </div>
-        <div class="d-flex justify-content-between">
-          <span class="text-muted">Restant</span><span class="fw-bold">{{ debt.restant }} €</span>
-        </div>
-      </div>
+      {% if debt.produits_txt %}
+      <div class="small text-muted mb-1 fw-semibold">Produits</div>
+      <p class="small mb-2">{{ debt.produits_txt }}</p>
+      {% endif %}
+      {% if debt.remarques %}
+      <div class="small text-muted mb-1 fw-semibold">Remarques</div>
+      <p class="small mb-0 fst-italic">{{ debt.remarques }}</p>
+      {% endif %}
     </div>
-    <div class="card p-3 mt-3">
-      <h2 class="h6">Produits / notes</h2>
-      <p class="mb-0">{{ debt.produits_txt|linebreaksbr|default:"—" }}</p>
-      {% if debt.remarques %}<hr/><div class="small text-muted">{{ debt.remarques|linebreaksbr }}</div>{% endif %}
-    </div>
+    {% endif %}
   </div>
 
-  <div class="col-lg-7">
-    <div class="card p-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h2 class="h6 mb-0">Paiements</h2>
-        <a class="btn btn-sm btn-outline-primary" href="{% url 'debts:pay' debt.id %}">Ajouter</a>
+  <!-- Historique paiements -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+        <h6 class="mb-0 fw-bold">Historique des paiements</h6>
+        {% if debt.statut != 'PAYEE' %}
+        <a class="btn btn-sm btn-outline-success" href="{% url 'debts:pay' debt.id %}">
+          <i class="fa-solid fa-plus me-1"></i> Nouveau paiement
+        </a>
+        {% endif %}
       </div>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
           <thead class="table-light">
             <tr>
-              <th>Date</th><th class="text-end">Montant</th><th>Utilisateur</th>
+              <th>Date</th>
+              <th class="text-end">Montant (FCFA)</th>
             </tr>
           </thead>
           <tbody>
             {% for p in payments %}
             <tr>
-              <td>{{ p.date_paiement }}</td>
-              <td class="text-end">{{ p.montant }} €</td>
-              <td>{{ p.utilisateur_nom|default:"—" }}</td>
+              <td>{{ p.date_paiement|date:"d/m/Y H:i" }}</td>
+              <td class="text-end fw-semibold text-success">{{ p.montant|floatformat:0 }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="3" class="text-center text-muted py-4">Aucun paiement.</td></tr>
+            <tr>
+              <td colspan="2" class="text-center text-muted py-4">
+                <i class="fa-solid fa-receipt fa-2x mb-2 d-block"></i>
+                Aucun paiement enregistré.
+              </td>
+            </tr>
             {% endfor %}
           </tbody>
+          {% if payments %}
           <tfoot class="table-light">
-            <tr><th>Total</th><th class="text-end">{{ total_paye }} €</th><th></th></tr>
+            <tr>
+              <th>Total encaissé</th>
+              <th class="text-end text-success">{{ total_paye|floatformat:0 }} FCFA</th>
+            </tr>
           </tfoot>
+          {% endif %}
         </table>
       </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

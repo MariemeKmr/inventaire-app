@@ -1,32 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Ajouter un paiement{% endblock %}
+{% block title %}Paiement — {{ debt.nom_client }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h5 mb-0">Paiement — {{ debt.nom_client }}</h1>
-  <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:detail' debt.id %}">Retour fiche</a>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">Enregistrer un paiement</h4>
+    <span class="text-muted small">{{ debt.nom_client }}</span>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:detail' debt.id %}">← Retour fiche</a>
 </div>
 
-<div class="card p-3" style="max-width:560px;">
-  <div class="mb-3 small text-muted">
-    Montant dû : <strong>{{ debt.montant }} €</strong> —
-    Total payé : <strong>{{ debt.total_paye }} €</strong> —
-    Restant : <strong>{{ debt.restant }} €</strong>
+<div class="card p-4" style="max-width:520px;">
+
+  <!-- Récap dette -->
+  <div class="row g-2 mb-4">
+    <div class="col-4 text-center">
+      <div class="small text-muted">Montant total</div>
+      <div class="fw-bold">{{ debt.montant|floatformat:0 }}</div>
+      <div class="small text-muted">FCFA</div>
+    </div>
+    <div class="col-4 text-center border-start border-end">
+      <div class="small text-muted">Déjà payé</div>
+      <div class="fw-bold text-success">{{ debt.total_paye|floatformat:0 }}</div>
+      <div class="small text-muted">FCFA</div>
+    </div>
+    <div class="col-4 text-center">
+      <div class="small text-muted">Restant</div>
+      <div class="fw-bold text-danger">{{ debt.restant|floatformat:0 }}</div>
+      <div class="small text-muted">FCFA</div>
+    </div>
   </div>
 
   <form method="post">
     {% csrf_token %}
+
     <div class="mb-3">
-      <label class="form-label">Montant (€)</label>
-      <input name="montant" type="number" step="0.01" min="0.01" value="{{ form.montant|default_if_none:'' }}" class="form-control" required>
-      <div class="form-text">Ne peut pas dépasser le restant.</div>
+      <label class="form-label fw-semibold">Montant du paiement (FCFA) <span class="text-danger">*</span></label>
+      <input name="montant" type="number" step="1" min="1"
+             max="{{ debt.restant|floatformat:0 }}"
+             class="form-control form-control-lg"
+             placeholder="0" required autofocus>
+      <div class="form-text">Maximum : {{ debt.restant|floatformat:0 }} FCFA</div>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Date de paiement</label>
-      <input name="date_paiement" type="datetime-local" value="{{ form.date_paiement|default_if_none:'' }}" class="form-control" required>
+
+    <div class="d-flex gap-2 mb-4">
+      <button type="button" class="btn btn-outline-secondary btn-sm"
+              onclick="document.querySelector('[name=montant]').value='{{ debt.restant|floatformat:0 }}'">
+        Tout payer ({{ debt.restant|floatformat:0 }} FCFA)
+      </button>
     </div>
+
     <div class="d-flex justify-content-end gap-2">
       <a class="btn btn-outline-secondary" href="{% url 'debts:detail' debt.id %}">Annuler</a>
-      <button class="btn btn-success">Enregistrer le paiement</button>
+      <button class="btn btn-success">
+        <i class="fa-solid fa-check me-1"></i> Confirmer le paiement
+      </button>
     </div>
   </form>
 </div>

@@ -1,52 +1,76 @@
 {% extends "base.html" %}
-{% block title %}{% if mode == "edit" %}Modifier dette{% else %}Nouvelle dette{% endif %}{% endblock %}
+{% block title %}{% if mode == "edit" %}Modifier la dette{% else %}Nouvelle dette{% endif %}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h5 mb-0">{% if mode == "edit" %}Modifier la dette{% else %}Nouvelle dette{% endif %}</h1>
-  <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:list' %}">Annuler</a>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">{% if mode == "edit" %}Modifier la dette{% else %}Nouvelle dette{% endif %}</h4>
+    <span class="text-muted small">{% if mode == "edit" %}Mise à jour de la fiche client{% else %}Enregistrer une nouvelle créance{% endif %}</span>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'debts:list' %}">← Retour</a>
 </div>
 
-<div class="card p-3" style="max-width:720px;">
+<div class="card p-4" style="max-width:720px;">
   <form method="post">
     {% csrf_token %}
     <div class="row g-3">
+
       <div class="col-md-6">
-        <label class="form-label">Nom client</label>
-        <input name="nom_client" value="{{ form.nom_client|default_if_none:'' }}" class="form-control" required>
+        <label class="form-label fw-semibold">Nom du client <span class="text-danger">*</span></label>
+        <input name="nom_client" value="{{ form.nom_client|default:'' }}"
+               class="form-control" placeholder="Ex : Awa Ndiaye" required autofocus>
       </div>
+
       <div class="col-md-6">
-        <label class="form-label">Téléphone</label>
-        <input name="telephone" value="{{ form.telephone|default_if_none:'' }}" class="form-control">
+        <label class="form-label fw-semibold">Téléphone</label>
+        <input name="telephone" value="{{ form.telephone|default:'' }}"
+               class="form-control" placeholder="Ex : 77 123 45 67">
       </div>
+
       <div class="col-md-4">
-        <label class="form-label">Montant (€)</label>
-        <input name="montant" type="number" step="0.01" min="0.01" value="{{ form.montant|default_if_none:'' }}" class="form-control" required>
+        <label class="form-label fw-semibold">Montant (FCFA) <span class="text-danger">*</span></label>
+        <input name="montant" type="number" step="1" min="1"
+               value="{{ form.montant|default:'' }}"
+               class="form-control" placeholder="0" required>
       </div>
+
       <div class="col-md-4">
-        <label class="form-label">Date de la dette</label>
-        <input name="date_dette" type="date" value="{{ form.date_dette|default_if_none:'' }}" class="form-control" required>
+        <label class="form-label fw-semibold">Date de la dette <span class="text-danger">*</span></label>
+        <input name="date_dette" type="date"
+               value="{{ form.date_dette|default:today }}"
+               class="form-control" required>
       </div>
+
       <div class="col-md-4">
-        <label class="form-label">Statut</label>
+        <label class="form-label fw-semibold">Statut</label>
         <select name="statut" class="form-select">
-          <option value="EN_COURS" {% if form.statut == "EN_COURS" %}selected{% endif %}>En cours</option>
-          <option value="PARTIEL" {% if form.statut == "PARTIEL" %}selected{% endif %}>Partiel</option>
-          <option value="PAYEE" {% if form.statut == "PAYEE" %}selected{% endif %}>Payée</option>
+          <option value="EN_COURS" {% if form.statut == "EN_COURS" or not form.statut %}selected{% endif %}>En cours</option>
+          <option value="PARTIEL"  {% if form.statut == "PARTIEL"  %}selected{% endif %}>Partiel</option>
+          <option value="PAYEE"    {% if form.statut == "PAYEE"    %}selected{% endif %}>Payée</option>
         </select>
       </div>
+
       <div class="col-12">
-        <label class="form-label">Produits (texte)</label>
-        <textarea name="produits_txt" class="form-control" rows="2">{{ form.produits_txt|default_if_none:'' }}</textarea>
+        <label class="form-label fw-semibold">Produits concernés</label>
+        <textarea name="produits_txt" class="form-control" rows="2"
+                  placeholder="Ex : Parfum x2 ; Encens x1">{{ form.produits_txt|default:'' }}</textarea>
+        <div class="form-text">Optionnel — pour garder une trace des articles.</div>
       </div>
+
       <div class="col-12">
-        <label class="form-label">Remarques</label>
-        <textarea name="remarques" class="form-control" rows="2">{{ form.remarques|default_if_none:'' }}</textarea>
+        <label class="form-label fw-semibold">Remarques</label>
+        <textarea name="remarques" class="form-control" rows="2"
+                  placeholder="Ex : Rappeler lundi matin">{{ form.remarques|default:'' }}</textarea>
       </div>
+
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-3">
+    <div class="d-flex justify-content-end gap-2 mt-4">
       <a class="btn btn-outline-secondary" href="{% url 'debts:list' %}">Annuler</a>
-      <button class="btn btn-primary">{% if mode == "edit" %}Enregistrer{% else %}Créer{% endif %}</button>
+      <button class="btn btn-primary">
+        <i class="fa-solid fa-check me-1"></i>
+        {% if mode == "edit" %}Enregistrer{% else %}Créer la dette{% endif %}
+      </button>
     </div>
   </form>
 </div>
