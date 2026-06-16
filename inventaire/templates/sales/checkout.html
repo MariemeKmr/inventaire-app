@@ -1,68 +1,76 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Validation de la vente{% endblock %}
+
 {% block content %}
 <div class="container" style="max-width: 820px;">
-  <h3 class="mb-3">Validation de la vente</h3>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h3 class="mb-0">Validation de la vente</h3>
+    <a href="{% url 'sales:cart' %}" class="btn btn-outline-secondary btn-sm">
+      ← Retour au panier
+    </a>
+  </div>
 
-  {# Fallback démo #}
-  {% with items=cart_items|default:[
-    {'name':'Parfum Jasmin','unit':15000,'qty':1},
-    {'name':'Encens Santal','unit':5000,'qty':2}
-  ] %}
-
+  <!-- Récapitulatif -->
   <div class="card mb-3">
-    <div class="card-header">Récapitulatif</div>
-    <div class="card-body">
+    <div class="card-header fw-semibold">Récapitulatif</div>
+    <div class="card-body p-0">
       <ul class="list-group list-group-flush">
-        {% with total=0 %}
-        {% for it in items %}
-          {% with line=it.unit|add:0|floatformat:0 %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            <div>
-              <div class="fw-semibold">{{ it.name }}</div>
-              <div class="text-muted small">Qté: {{ it.qty }} × {{ it.unit|floatformat:0 }} FCFA</div>
+        {% for it in cart_items %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold">{{ it.produit.nom }}</div>
+            <div class="text-muted small">
+              {{ it.qty }} × {{ it.unit|floatformat:0 }} FCFA
             </div>
-            <div class="fw-semibold">
-              {% widthratio it.unit it.qty 1 %}{% comment %}hack inutile, on calcule au JS plus bas{% endcomment %}
-              <span class="line-total" data-unit="{{ it.unit }}" data-qty="{{ it.qty }}"></span> FCFA
-            </div>
-          </li>
-          {% endwith %}
+          </div>
+          <div class="fw-semibold">{{ it.total|floatformat:0 }} FCFA</div>
+        </li>
         {% endfor %}
-        {% endwith %}
       </ul>
-      <div class="d-flex justify-content-end mt-3">
-        <div class="h5">Total : <span id="co-total"></span> FCFA</div>
+      <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+        <span class="fw-semibold">Total à encaisser</span>
+        <span class="h5 mb-0 text-primary">{{ cart_total|floatformat:0 }} FCFA</span>
       </div>
     </div>
   </div>
 
-  <form>
+  <!-- Formulaire de paiement -->
+  <form method="post">
+    {% csrf_token %}
+
     <div class="card mb-3">
-      <div class="card-header">Paiement</div>
+      <div class="card-header fw-semibold">Mode de paiement</div>
       <div class="card-body">
         <div class="form-check">
-          <input class="form-check-input" type="radio" name="paymode" id="pay-cash" checked>
-          <label class="form-check-label" for="pay-cash">Comptant</label>
+          <input class="form-check-input" type="radio" name="paymode" id="pay-cash"
+                 value="cash" checked>
+          <label class="form-check-label" for="pay-cash">
+            <i class="fa-solid fa-money-bill-wave me-1 text-success"></i> Comptant
+          </label>
         </div>
         <div class="form-check mt-2">
-          <input class="form-check-input" type="radio" name="paymode" id="pay-debt">
-          <label class="form-check-label" for="pay-debt">Dette (créera une dette)</label>
+          <input class="form-check-input" type="radio" name="paymode" id="pay-debt"
+                 value="debt">
+          <label class="form-check-label" for="pay-debt">
+            <i class="fa-solid fa-file-invoice-dollar me-1 text-warning"></i>
+            Dette (une dette sera créée automatiquement)
+          </label>
         </div>
 
+        <!-- Champs dette (cachés par défaut) -->
         <div id="debt-fields" class="mt-3 d-none">
           <div class="row g-2">
             <div class="col-md-6">
-              <label class="form-label">Nom du client</label>
-              <input class="form-control" placeholder="Ex: Awa Ndiaye">
+              <label class="form-label">Nom du client <span class="text-danger">*</span></label>
+              <input class="form-control" name="nom_client" placeholder="Ex: Awa Ndiaye">
             </div>
             <div class="col-md-6">
               <label class="form-label">Téléphone</label>
-              <input class="form-control" placeholder="Ex: 77 123 45 67">
+              <input class="form-control" name="telephone" placeholder="Ex: 77 123 45 67">
             </div>
             <div class="col-12">
               <label class="form-label">Remarque</label>
-              <input class="form-control" placeholder="Facultatif">
+              <input class="form-control" name="remarques" placeholder="Facultatif">
             </div>
           </div>
         </div>
@@ -70,36 +78,24 @@
     </div>
 
     <div class="d-flex justify-content-between">
-      <a href="{% url 'sales:cart' %}" class="btn btn-outline-secondary">← Retour au panier</a>
-      <button type="button" class="btn btn-primary">Confirmer la vente</button>
+      <a href="{% url 'sales:cart' %}" class="btn btn-outline-secondary">
+        ← Modifier le panier
+      </a>
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="fa-solid fa-check me-2"></i> Confirmer la vente
+      </button>
     </div>
   </form>
-
-  {% endwith %}
 </div>
 
 <script>
 (function(){
-  const fmt = n => new Intl.NumberFormat('fr-FR').format(n||0);
-  let sum = 0;
-  document.querySelectorAll('.line-total').forEach(el=>{
-    const unit = parseInt(el.dataset.unit||"0",10);
-    const qty  = parseInt(el.dataset.qty||"0",10);
-    const val  = unit * qty;
-    el.textContent = fmt(val);
-    sum += val;
-  });
-  const tot = document.getElementById('co-total');
-  if (tot) tot.textContent = fmt(sum);
-
-  const debt = document.getElementById('pay-debt');
-  const cash = document.getElementById('pay-cash');
-  const fields = document.getElementById('debt-fields');
-  function toggle() {
-    fields.classList.toggle('d-none', !debt.checked);
-  }
-  debt?.addEventListener('change', toggle);
-  cash?.addEventListener('change', toggle);
+  const debtRadio = document.getElementById('pay-debt');
+  const cashRadio = document.getElementById('pay-cash');
+  const fields    = document.getElementById('debt-fields');
+  function toggle(){ fields.classList.toggle('d-none', !debtRadio.checked); }
+  debtRadio?.addEventListener('change', toggle);
+  cashRadio?.addEventListener('change', toggle);
   toggle();
 })();
 </script>

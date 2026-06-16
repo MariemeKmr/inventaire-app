@@ -1,130 +1,126 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block title %}Panier{% endblock %}
+
 {% block content %}
 <div class="container" style="max-width: 960px;">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h3 class="mb-0">Panier</h3>
+    <h3 class="mb-0">
+      <i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Panier
+    </h3>
     <div class="d-flex gap-2">
-      <a href="{% url 'sales:history' %}" class="btn btn-outline-secondary btn-sm">
-        ← Historique
+      <a href="{% url 'products:list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fa-solid fa-plus me-1"></i> Ajouter des produits
       </a>
+      {% if cart_items %}
       <a href="{% url 'sales:checkout' %}" class="btn btn-primary btn-sm">
-        Continuer vers la validation
+        Valider la vente →
       </a>
+      {% endif %}
     </div>
   </div>
 
-  {# Fallback démo si le backend ne fournit pas 'cart_items' #}
-  {% with items=cart_items|default:None %}
-  {% if not items %}
-    {% comment %} Démo: 2 lignes de panier {% endcomment %}
-    {% with items=[
-      {'id':101,'name':'Parfum Jasmin','unit':15000,'qty':1,'img':'https://via.placeholder.com/80?text=PJ'},
-      {'id':205,'name':'Encens Santal','unit':5000,'qty':2,'img':'https://via.placeholder.com/80?text=ES'}
-    ] %}
-  {% endif %}
-
+  {% if not cart_items %}
+    <div class="text-center py-5 text-muted">
+      <i class="fa-solid fa-cart-shopping fa-3x mb-3 d-block"></i>
+      <p>Votre panier est vide.</p>
+      <a href="{% url 'products:list' %}" class="btn btn-primary">
+        <i class="fa-solid fa-plus me-1"></i> Parcourir les produits
+      </a>
+      <a href="{% url 'sales:quick' %}" class="btn btn-outline-secondary ms-2">
+        <i class="fa-solid fa-bolt me-1"></i> Vente rapide
+      </a>
+    </div>
+  {% else %}
   <div class="table-responsive">
     <table class="table align-middle">
       <thead class="table-light">
         <tr>
           <th>Produit</th>
-          <th style="width: 140px;">Qté</th>
-          <th class="text-end">Prix unitaire (FCFA)</th>
-          <th class="text-end">Total ligne (FCFA)</th>
-          <th style="width: 60px;"></th>
+          <th style="width:160px;">Quantité</th>
+          <th class="text-end">Prix unitaire</th>
+          <th class="text-end">Total ligne</th>
+          <th style="width:60px;"></th>
         </tr>
       </thead>
-      <tbody id="cart-body">
-        {% for it in items %}
-        <tr data-id="{{ it.id }}">
+      <tbody>
+        {% for it in cart_items %}
+        <tr>
           <td>
             <div class="d-flex align-items-center gap-2">
-              <img src="{{ it.img }}" class="rounded" width="48" height="48" alt="">
+              {% if it.produit.image_url %}
+                <img src="{{ it.produit.image_url }}" class="rounded" width="48" height="48"
+                     style="object-fit:contain;" alt="">
+              {% elif it.produit.image_file %}
+                <img src="{{ it.produit.image_file.url }}" class="rounded" width="48" height="48"
+                     style="object-fit:contain;" alt="">
+              {% else %}
+                <div class="rounded bg-light d-flex align-items-center justify-content-center"
+                     style="width:48px;height:48px;">
+                  <i class="fa-solid fa-box text-secondary"></i>
+                </div>
+              {% endif %}
               <div>
-                <div class="fw-semibold">{{ it.name }}</div>
-                <div class="text-muted small">Réf #{{ it.id }}</div>
+                <div class="fw-semibold">{{ it.produit.nom }}</div>
+                <div class="text-muted small">
+                  Stock dispo : {{ it.produit.quantite }}
+                  {% if it.qty > it.produit.quantite %}
+                    <span class="text-danger ms-1"><i class="fa-solid fa-triangle-exclamation"></i> Insuffisant</span>
+                  {% endif %}
+                </div>
               </div>
             </div>
           </td>
           <td>
-            <div class="input-group input-group-sm" style="max-width: 140px;">
-              <button class="btn btn-outline-secondary btn-minus" type="button">−</button>
-              <input class="form-control text-center qty" value="{{ it.qty }}" />
-              <button class="btn btn-outline-secondary btn-plus" type="button">+</button>
-            </div>
+            <form method="post" action="{% url 'sales:cart_update' it.produit.id %}" class="d-flex align-items-center gap-1">
+              {% csrf_token %}
+              <button type="submit" name="qty" value="{{ it.qty|add:'-1' }}"
+                      class="btn btn-outline-secondary btn-sm px-2">−</button>
+              <input type="number" name="qty" value="{{ it.qty }}" min="0"
+                     max="{{ it.produit.quantite }}"
+                     class="form-control form-control-sm text-center" style="width:60px;"
+                     onchange="this.form.submit()">
+              <button type="submit" name="qty" value="{{ it.qty|add:'1' }}"
+                      class="btn btn-outline-secondary btn-sm px-2">+</button>
+            </form>
           </td>
-          <td class="text-end unit">{{ it.unit|floatformat:0 }}</td>
-          <td class="text-end line-total"></td>
+          <td class="text-end">{{ it.unit|floatformat:0 }} FCFA</td>
+          <td class="text-end fw-semibold">{{ it.total|floatformat:0 }} FCFA</td>
           <td class="text-end">
-            <button class="btn btn-link text-danger p-0 btn-remove" title="Retirer"><i class="fa fa-trash"></i></button>
+            <form method="post" action="{% url 'sales:cart_remove' it.produit.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-link text-danger p-0" title="Retirer">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </form>
           </td>
         </tr>
-        {% empty %}
-        <tr><td colspan="5" class="text-center text-muted">Votre panier est vide.</td></tr>
         {% endfor %}
       </tbody>
-      <tfoot>
+      <tfoot class="table-light">
         <tr>
-          <th colspan="3" class="text-end">Montant total (FCFA)</th>
-          <th class="text-end" id="cart-total"></th>
-          <th></th>
+          <th colspan="3" class="text-end">Total</th>
+          <th class="text-end">{{ cart_total|floatformat:0 }} FCFA</th>
+          <th>
+            <form method="post" action="{% url 'sales:cart_clear' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-link text-danger p-0 small" title="Vider le panier">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </form>
+          </th>
         </tr>
       </tfoot>
     </table>
   </div>
 
-  <div class="d-flex justify-content-end gap-2">
-    <a href="#" class="btn btn-outline-danger btn-sm" id="btn-clear">Vider le panier</a>
-    <a href="{% url 'sales:checkout' %}" class="btn btn-primary btn-sm">Valider la vente</a>
+  <div class="d-flex justify-content-end gap-2 mt-2">
+    <a href="{% url 'products:list' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="fa-solid fa-plus me-1"></i> Continuer les achats
+    </a>
+    <a href="{% url 'sales:checkout' %}" class="btn btn-primary">
+      Valider la vente →
+    </a>
   </div>
-
-  {% if not cart_items %}{% endwith %}{% endif %}
+  {% endif %}
 </div>
-
-<script>
-(function(){
-  const fmt = n => new Intl.NumberFormat('fr-FR').format(n||0);
-
-  function recalcRow(tr){
-    const unit = parseInt(tr.querySelector('.unit').textContent.replace(/\s/g,'')) || 0;
-    const qty  = Math.max(0, parseInt(tr.querySelector('.qty').value)||0);
-    const total = unit * qty;
-    tr.querySelector('.line-total').textContent = fmt(total);
-    return total;
-  }
-  function recalcAll(){
-    let sum = 0;
-    document.querySelectorAll('#cart-body tr').forEach(tr => sum += recalcRow(tr));
-    const tot = document.getElementById('cart-total');
-    if (tot) tot.textContent = fmt(sum);
-  }
-
-  document.getElementById('cart-body')?.addEventListener('click', (e)=>{
-    const tr = e.target.closest('tr');
-    if (!tr) return;
-    if (e.target.closest('.btn-plus')){
-      const input = tr.querySelector('.qty'); input.value = (parseInt(input.value)||0) + 1;
-      recalcAll();
-    }
-    if (e.target.closest('.btn-minus')){
-      const input = tr.querySelector('.qty'); input.value = Math.max(0, (parseInt(input.value)||0) - 1);
-      recalcAll();
-    }
-    if (e.target.closest('.btn-remove')){
-      tr.remove(); recalcAll();
-    }
-  });
-  document.getElementById('cart-body')?.addEventListener('input', (e)=>{
-    if (e.target.classList.contains('qty')) recalcAll();
-  });
-  document.getElementById('btn-clear')?.addEventListener('click', (e)=>{
-    e.preventDefault();
-    document.getElementById('cart-body').innerHTML = "";
-    recalcAll();
-  });
-
-  recalcAll();
-})();
-</script>
 {% endblock %}
