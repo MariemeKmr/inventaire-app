@@ -1,37 +1,55 @@
-﻿<div class="d-flex flex-column py-3">
-  <ul class="nav flex-column">
+<div class="d-flex flex-column py-3 h-100">
+  <ul class="nav flex-column flex-grow-1">
     <li class="nav-item">
       <a href="{% url 'dashboard' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
         <i class="fa-solid fa-house me-2"></i> <span class="label">Accueil</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'products:list' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'products:list' %}active{% endif %}">
+      <a href="{% url 'products:list' %}" class="nav-link sidebar-link {% if 'products' in request.resolver_match.namespace %}active{% endif %}">
         <i class="fa-solid fa-box me-2"></i> <span class="label">Produits</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'sales:history' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'sales:history' %}active{% endif %}">
+      <a href="{% url 'sales:history' %}" class="nav-link sidebar-link {% if 'sales' in request.resolver_match.namespace %}active{% endif %}">
         <i class="fa-solid fa-cart-shopping me-2"></i> <span class="label">Ventes</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'debts:list' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'debts:list' %}active{% endif %}">
+      <a href="{% url 'debts:list' %}" class="nav-link sidebar-link {% if 'debts' in request.resolver_match.namespace %}active{% endif %}">
         <i class="fa-solid fa-file-invoice-dollar me-2"></i> <span class="label">Dettes</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'stats:index' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'stats:index' %}active{% endif %}">
+      <a href="{% url 'stats:index' %}" class="nav-link sidebar-link {% if 'stats' in request.resolver_match.namespace %}active{% endif %}">
         <i class="fa-solid fa-chart-line me-2"></i> <span class="label">Statistiques</span>
       </a>
     </li>
     <li class="nav-item">
-      <a href="{% url 'history:index' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'history:index' %}active{% endif %}">
+      <a href="{% url 'history:index' %}" class="nav-link sidebar-link {% if 'history' in request.resolver_match.namespace %}active{% endif %}">
         <i class="fa-solid fa-clock-rotate-left me-2"></i> <span class="label">Historique</span>
       </a>
     </li>
   </ul>
+
+  <!-- Bas de sidebar : profil + équipe -->
+  <ul class="nav flex-column border-top pt-2 mt-2">
+    {% if request.user.is_staff %}
+    <li class="nav-item">
+      <a href="{% url 'accounts:team' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'team' %}active{% endif %}">
+        <i class="fa-solid fa-users me-2"></i> <span class="label">Équipe</span>
+      </a>
+    </li>
+    {% endif %}
+    <li class="nav-item">
+      <a href="{% url 'accounts:profile' %}" class="nav-link sidebar-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+        <i class="fa-solid fa-circle-user me-2"></i> <span class="label">Mon profil</span>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a href="{% url 'accounts:logout' %}" class="nav-link sidebar-link text-danger">
+        <i class="fa-solid fa-right-from-bracket me-2"></i> <span class="label">Déconnexion</span>
+      </a>
+    </li>
+  </ul>
 </div>
-
-
-

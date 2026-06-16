@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "edit" %}Modifier{% else %}Nouvel utilisateur{% endif %}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h4 class="mb-0 fw-bold">{% if mode == "edit" %}Modifier — {{ member.username }}{% else %}Nouvel utilisateur{% endif %}</h4>
+    <span class="text-muted small">Gestion de l'équipe</span>
+  </div>
+  <a href="{% url 'accounts:team' %}" class="btn btn-outline-secondary btn-sm">← Retour</a>
+</div>
+
+<div class="card p-4" style="max-width:640px;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+
+      {% if mode == "new" %}
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Nom d'utilisateur <span class="text-danger">*</span></label>
+        <input name="username" value="{{ form.username|default:'' }}" class="form-control" required autofocus>
+      </div>
+      {% endif %}
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Prénom</label>
+        <input name="first_name" value="{{ form.first_name|default:'' }}" class="form-control">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Nom</label>
+        <input name="last_name" value="{{ form.last_name|default:'' }}" class="form-control">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Email</label>
+        <input name="email" type="email" value="{{ form.email|default:'' }}" class="form-control">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Rôle <span class="text-danger">*</span></label>
+        <select name="role" class="form-select">
+          <option value="vendeur" {% if form.role != "admin" %}selected{% endif %}>Vendeur</option>
+          <option value="admin"   {% if form.role == "admin"  %}selected{% endif %}>Admin</option>
+        </select>
+        <div class="form-text">Admin : accès complet. Vendeur : ventes et dettes uniquement.</div>
+      </div>
+
+      {% if mode == "edit" %}
+      <div class="col-md-6">
+        <label class="form-label fw-semibold">Statut</label>
+        <select name="is_active" class="form-select">
+          <option value="1" {% if form.is_active %}selected{% endif %}>Actif</option>
+          <option value="0" {% if not form.is_active %}selected{% endif %}>Inactif</option>
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="col-12">
+        <label class="form-label fw-semibold">
+          Mot de passe {% if mode == "new" %}<span class="text-danger">*</span>{% else %}<span class="text-muted fw-normal">(laisser vide pour ne pas changer)</span>{% endif %}
+        </label>
+        <input name="password" type="password" class="form-control"
+               {% if mode == "new" %}required{% endif %} minlength="8"
+               placeholder="8 caractères minimum">
+      </div>
+
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+      <a class="btn btn-outline-secondary" href="{% url 'accounts:team' %}">Annuler</a>
+      <button class="btn btn-primary">
+        <i class="fa-solid fa-check me-1"></i>
+        {% if mode == "edit" %}Enregistrer{% else %}Créer l'utilisateur{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
