@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Équipe{% endblock %}
+{% block title %}Equipe{% endblock %}
 {% block content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h4 class="mb-0 fw-bold">Équipe</h4>
-    <span class="text-muted small">{{ users|length }} membre(s)</span>
+    <h4 class="mb-0 fw-bold">Equipe</h4>
+    <span class="text-muted small">{{ users|length }} membre(s) + vous</span>
   </div>
   <a href="{% url 'accounts:team_create' %}" class="btn btn-primary">
     <i class="fa-solid fa-plus me-1"></i> Nouvel utilisateur
@@ -19,19 +19,45 @@
         <tr>
           <th>Utilisateur</th>
           <th>Email</th>
-          <th>Rôle</th>
+          <th>Role</th>
           <th>Statut</th>
           <th style="width:1%"></th>
         </tr>
       </thead>
       <tbody>
+
+        <!-- Compte connecte : lecture seule -->
+        <tr class="table-light">
+          <td>
+            <div class="fw-semibold">{{ current_user.get_full_name|default:current_user.username }}
+              <span class="badge bg-secondary ms-1 small">Vous</span>
+            </div>
+            <div class="text-muted small">@{{ current_user.username }}</div>
+          </td>
+          <td class="text-muted">{{ current_user.email|default:"" }}</td>
+          <td>
+            {% if current_user.is_staff %}
+              <span class="badge bg-primary">Admin</span>
+            {% else %}
+              <span class="badge bg-secondary">Vendeur</span>
+            {% endif %}
+          </td>
+          <td><span class="badge bg-success">Actif</span></td>
+          <td>
+            <a class="btn btn-sm btn-outline-secondary" href="{% url 'accounts:profile' %}">
+              <i class="fa-solid fa-pen"></i> Mon profil
+            </a>
+          </td>
+        </tr>
+
+        <!-- Autres membres -->
         {% for u in users %}
         <tr>
           <td>
             <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
             <div class="text-muted small">@{{ u.username }}</div>
           </td>
-          <td class="text-muted">{{ u.email|default:"—" }}</td>
+          <td class="text-muted">{{ u.email|default:"" }}</td>
           <td>
             {% if u.is_staff %}
               <span class="badge bg-primary">Admin</span>
@@ -50,16 +76,17 @@
             <a class="btn btn-sm btn-outline-secondary" href="{% url 'accounts:team_edit' u.id %}">
               <i class="fa-solid fa-pen"></i>
             </a>
-            {% if u != request.user %}
             <a class="btn btn-sm btn-outline-danger" href="{% url 'accounts:team_delete' u.id %}">
               <i class="fa-solid fa-trash"></i>
             </a>
-            {% endif %}
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" class="text-center text-muted py-4">Aucun utilisateur.</td></tr>
+        <tr>
+          <td colspan="5" class="text-center text-muted py-3">Aucun autre utilisateur.</td>
+        </tr>
         {% endfor %}
+
       </tbody>
     </table>
   </div>

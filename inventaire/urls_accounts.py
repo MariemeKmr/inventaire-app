@@ -26,11 +26,8 @@ urlpatterns = [
     ), name="password_reset_complete"),
 
     path("activate/<uidb64>/<token>/", views_accounts.activate, name="activate"),
-
-    # Profil
-    path("profile/",                   views_accounts.profile,      name="profile"),
-
-    # Équipe (admin)
+    path("profile/",                   views_accounts.profile,               name="profile"),
+    path("change-password/",           views_accounts.change_password_forced, name="change_password"),
     path("team/",                      views_accounts.team_list,    name="team"),
     path("team/new/",                  views_accounts.team_create,  name="team_create"),
     path("team/<int:user_id>/edit/",   views_accounts.team_edit,    name="team_edit"),

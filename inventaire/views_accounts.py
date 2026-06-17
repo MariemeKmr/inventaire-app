@@ -28,13 +28,21 @@ def _admin_required(request):
 
 
 def _has_other_active_admin(exclude_user):
-    """Vérifie qu'il reste au moins 1 admin actif autre que cet utilisateur."""
     return User.objects.filter(is_staff=True, is_active=True).exclude(pk=exclude_user.pk).exists()
+
+
+# ── Middleware-like : forcer changement de mot de passe temporaire ──
+def _must_change_password(user):
+    return getattr(user, 'profile', None) and user.profile.must_change_password
 
 
 # ── Profil ──────────────────────────────────────────────────────────
 @login_required
 def profile(request):
+    # Forcer changement si mot de passe temporaire
+    if request.user.profile.must_change_password and request.path != '/accounts/change-password/':
+        return redirect("accounts:change_password")
+
     if request.method == "POST":
         action = request.POST.get("action")
 
@@ -71,14 +79,40 @@ def profile(request):
     return render(request, "accounts/profile.html", {"user": request.user})
 
 
+# ── Changement mot de passe temporaire (obligatoire) ────────────────
+@login_required
+def change_password_forced(request):
+    if request.method == "POST":
+        new     = request.POST.get("new_password", "")
+        confirm = request.POST.get("confirm_password", "")
+        if len(new) < 8:
+            messages.error(request, "8 caractères minimum.")
+        elif new != confirm:
+            messages.error(request, "Les mots de passe ne correspondent pas.")
+        else:
+            request.user.set_password(new)
+            request.user.save()
+            update_session_auth_hash(request, request.user)
+            request.user.profile.must_change_password = False
+            request.user.profile.save()
+            messages.success(request, "Mot de passe défini. Bienvenue !")
+            return redirect("dashboard")
+
+    return render(request, "accounts/change_password_forced.html")
+
+
 # ── Liste equipe ────────────────────────────────────────────────────
 @login_required
 def team_list(request):
     if not _admin_required(request):
         messages.error(request, "Accès réservé à l'administrateur.")
         return redirect("dashboard")
-    users = User.objects.order_by("username")
-    return render(request, "accounts/team_list.html", {"users": users})
+    # Autres utilisateurs seulement (pas soi-même)
+    others = User.objects.exclude(pk=request.user.pk).order_by("username")
+    return render(request, "accounts/team_list.html", {
+        "users": others,
+        "current_user": request.user,
+    })
 
 
 # ── Créer utilisateur ───────────────────────────────────────────────
@@ -100,18 +134,22 @@ def team_create(request):
             messages.error(request, "Nom d'utilisateur et mot de passe obligatoires.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
         if User.objects.filter(username=username).exists():
-            messages.error(request, f"Le nom d'utilisateur '{username}' est déjà pris.")
+            messages.error(request, f"'{username}' est déjà pris.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
-        if len(password) < 8:
-            messages.error(request, "8 caractères minimum.")
+        if len(password) < 4:
+            messages.error(request, "Le mot de passe temporaire doit faire au moins 4 caractères.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
 
-        User.objects.create_user(
+        user = User.objects.create_user(
             username=username, email=email, password=password,
             first_name=first_name, last_name=last_name,
             is_staff=(role == "admin"), is_active=True,
         )
-        messages.success(request, f"Utilisateur '{username}' créé.")
+        # Marquer le mot de passe comme temporaire
+        user.profile.must_change_password = True
+        user.profile.save()
+
+        messages.success(request, f"Utilisateur '{username}' créé. Mot de passe temporaire : {password}")
         return redirect("accounts:team")
 
     return render(request, "accounts/team_form.html", {"mode": "new", "form": {}})
@@ -125,23 +163,17 @@ def team_edit(request, user_id):
         return redirect("dashboard")
 
     member = get_object_or_404(User, pk=user_id)
-    is_self = (member == request.user)
+
+    # On ne peut pas s'éditer soi-même ici
+    if member == request.user:
+        messages.info(request, "Pour modifier votre propre compte, allez dans Mon profil.")
+        return redirect("accounts:profile")
 
     if request.method == "POST":
         role      = request.POST.get("role", "vendeur")
         is_active = request.POST.get("is_active") == "1"
 
-        # Protection : ne pas se désactiver soi-même
-        if is_self and not is_active:
-            messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
-            return redirect("accounts:team_edit", user_id=user_id)
-
-        # Protection : ne pas se rétrograder soi-même
-        if is_self and role != "admin":
-            messages.error(request, "Vous ne pouvez pas rétrograder votre propre rôle.")
-            return redirect("accounts:team_edit", user_id=user_id)
-
-        # Protection : toujours au moins 1 admin actif
+        # Protection dernier admin
         if member.is_staff and (role != "admin" or not is_active):
             if not _has_other_active_admin(member):
                 messages.error(request, "Impossible : il doit rester au moins un administrateur actif.")
@@ -155,10 +187,12 @@ def team_edit(request, user_id):
 
         new_pw = request.POST.get("password", "").strip()
         if new_pw:
-            if len(new_pw) < 8:
-                messages.error(request, "8 caractères minimum.")
+            if len(new_pw) < 4:
+                messages.error(request, "4 caractères minimum pour un mot de passe temporaire.")
                 return redirect("accounts:team_edit", user_id=user_id)
             member.set_password(new_pw)
+            member.profile.must_change_password = True
+            member.profile.save()
 
         member.save()
         messages.success(request, f"'{member.username}' mis à jour.")
@@ -172,9 +206,7 @@ def team_edit(request, user_id):
         "role":       "admin" if member.is_staff else "vendeur",
         "is_active":  member.is_active,
     }
-    return render(request, "accounts/team_form.html", {
-        "mode": "edit", "form": form, "member": member, "is_self": is_self
-    })
+    return render(request, "accounts/team_form.html", {"mode": "edit", "form": form, "member": member})
 
 
 # ── Supprimer utilisateur ───────────────────────────────────────────
