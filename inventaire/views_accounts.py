@@ -8,25 +8,31 @@ from django.utils.encoding import force_str
 from django.contrib.auth.tokens import default_token_generator as token_generator
 
 
-# ── Activation compte ───────────────────────────────────────────────
 def activate(request, uidb64, token):
     try:
         uid  = force_str(urlsafe_base64_decode(uidb64))
         user = User.objects.get(pk=uid)
     except Exception:
         user = None
-
     if user is not None and token_generator.check_token(user, token):
         user.is_active = True
         user.save(update_fields=["is_active"])
         messages.success(request, "Compte activé, vous pouvez vous connecter.")
         return redirect("accounts:login")
-
     messages.error(request, "Lien d'activation invalide ou expiré.")
     return render(request, "accounts/activation_invalid.html", {})
 
 
-# ── Mon profil ──────────────────────────────────────────────────────
+def _admin_required(request):
+    return request.user.is_authenticated and request.user.is_staff
+
+
+def _has_other_active_admin(exclude_user):
+    """Vérifie qu'il reste au moins 1 admin actif autre que cet utilisateur."""
+    return User.objects.filter(is_staff=True, is_active=True).exclude(pk=exclude_user.pk).exists()
+
+
+# ── Profil ──────────────────────────────────────────────────────────
 @login_required
 def profile(request):
     if request.method == "POST":
@@ -45,13 +51,13 @@ def profile(request):
             messages.success(request, "Profil mis à jour.")
 
         elif action == "password":
-            old = request.POST.get("old_password", "")
-            new = request.POST.get("new_password", "")
+            old     = request.POST.get("old_password", "")
+            new     = request.POST.get("new_password", "")
             confirm = request.POST.get("confirm_password", "")
             if not request.user.check_password(old):
                 messages.error(request, "Mot de passe actuel incorrect.")
             elif len(new) < 8:
-                messages.error(request, "Le nouveau mot de passe doit faire au moins 8 caractères.")
+                messages.error(request, "8 caractères minimum.")
             elif new != confirm:
                 messages.error(request, "Les mots de passe ne correspondent pas.")
             else:
@@ -65,21 +71,17 @@ def profile(request):
     return render(request, "accounts/profile.html", {"user": request.user})
 
 
-# ── Gestion équipe (admin only) ─────────────────────────────────────
-def _admin_required(request):
-    return request.user.is_authenticated and request.user.is_staff
-
-
+# ── Liste equipe ────────────────────────────────────────────────────
 @login_required
 def team_list(request):
     if not _admin_required(request):
         messages.error(request, "Accès réservé à l'administrateur.")
         return redirect("dashboard")
-
     users = User.objects.order_by("username")
     return render(request, "accounts/team_list.html", {"users": users})
 
 
+# ── Créer utilisateur ───────────────────────────────────────────────
 @login_required
 def team_create(request):
     if not _admin_required(request):
@@ -92,35 +94,30 @@ def team_create(request):
         last_name  = request.POST.get("last_name",  "").strip()
         email      = request.POST.get("email", "").strip()
         password   = request.POST.get("password", "")
-        role       = request.POST.get("role", "vendeur")  # "admin" ou "vendeur"
+        role       = request.POST.get("role", "vendeur")
 
         if not username or not password:
             messages.error(request, "Nom d'utilisateur et mot de passe obligatoires.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
-
         if User.objects.filter(username=username).exists():
-            messages.error(request, f"Le nom d'utilisateur « {username} » est déjà pris.")
+            messages.error(request, f"Le nom d'utilisateur '{username}' est déjà pris.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
-
         if len(password) < 8:
-            messages.error(request, "Le mot de passe doit faire au moins 8 caractères.")
+            messages.error(request, "8 caractères minimum.")
             return render(request, "accounts/team_form.html", {"mode": "new", "form": request.POST})
 
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            is_staff=(role == "admin"),
-            is_active=True,
+        User.objects.create_user(
+            username=username, email=email, password=password,
+            first_name=first_name, last_name=last_name,
+            is_staff=(role == "admin"), is_active=True,
         )
-        messages.success(request, f"Utilisateur « {username} » créé avec le rôle {role}.")
+        messages.success(request, f"Utilisateur '{username}' créé.")
         return redirect("accounts:team")
 
     return render(request, "accounts/team_form.html", {"mode": "new", "form": {}})
 
 
+# ── Modifier utilisateur ────────────────────────────────────────────
 @login_required
 def team_edit(request, user_id):
     if not _admin_required(request):
@@ -128,24 +125,43 @@ def team_edit(request, user_id):
         return redirect("dashboard")
 
     member = get_object_or_404(User, pk=user_id)
+    is_self = (member == request.user)
 
     if request.method == "POST":
+        role      = request.POST.get("role", "vendeur")
+        is_active = request.POST.get("is_active") == "1"
+
+        # Protection : ne pas se désactiver soi-même
+        if is_self and not is_active:
+            messages.error(request, "Vous ne pouvez pas désactiver votre propre compte.")
+            return redirect("accounts:team_edit", user_id=user_id)
+
+        # Protection : ne pas se rétrograder soi-même
+        if is_self and role != "admin":
+            messages.error(request, "Vous ne pouvez pas rétrograder votre propre rôle.")
+            return redirect("accounts:team_edit", user_id=user_id)
+
+        # Protection : toujours au moins 1 admin actif
+        if member.is_staff and (role != "admin" or not is_active):
+            if not _has_other_active_admin(member):
+                messages.error(request, "Impossible : il doit rester au moins un administrateur actif.")
+                return redirect("accounts:team_edit", user_id=user_id)
+
         member.first_name = request.POST.get("first_name", "").strip()
         member.last_name  = request.POST.get("last_name",  "").strip()
         member.email      = request.POST.get("email", "").strip()
-        role = request.POST.get("role", "vendeur")
         member.is_staff   = (role == "admin")
-        member.is_active  = request.POST.get("is_active") == "1"
+        member.is_active  = is_active
 
         new_pw = request.POST.get("password", "").strip()
         if new_pw:
             if len(new_pw) < 8:
-                messages.error(request, "Le mot de passe doit faire au moins 8 caractères.")
+                messages.error(request, "8 caractères minimum.")
                 return redirect("accounts:team_edit", user_id=user_id)
             member.set_password(new_pw)
 
         member.save()
-        messages.success(request, f"Utilisateur « {member.username} » mis à jour.")
+        messages.success(request, f"'{member.username}' mis à jour.")
         return redirect("accounts:team")
 
     form = {
@@ -156,9 +172,12 @@ def team_edit(request, user_id):
         "role":       "admin" if member.is_staff else "vendeur",
         "is_active":  member.is_active,
     }
-    return render(request, "accounts/team_form.html", {"mode": "edit", "form": form, "member": member})
+    return render(request, "accounts/team_form.html", {
+        "mode": "edit", "form": form, "member": member, "is_self": is_self
+    })
 
 
+# ── Supprimer utilisateur ───────────────────────────────────────────
 @login_required
 def team_delete(request, user_id):
     if not _admin_required(request):
@@ -171,10 +190,14 @@ def team_delete(request, user_id):
         messages.error(request, "Vous ne pouvez pas supprimer votre propre compte.")
         return redirect("accounts:team")
 
+    if member.is_staff and not _has_other_active_admin(member):
+        messages.error(request, "Impossible : il doit rester au moins un administrateur actif.")
+        return redirect("accounts:team")
+
     if request.method == "POST":
         username = member.username
         member.delete()
-        messages.success(request, f"Utilisateur « {username} » supprimé.")
+        messages.success(request, f"'{username}' supprimé.")
         return redirect("accounts:team")
 
     return render(request, "accounts/team_confirm_delete.html", {"member": member})

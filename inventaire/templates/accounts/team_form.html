@@ -10,6 +10,13 @@
   <a href="{% url 'accounts:team' %}" class="btn btn-outline-secondary btn-sm">← Retour</a>
 </div>
 
+{% if is_self %}
+<div class="alert alert-info small mb-3">
+  <i class="fa-solid fa-circle-info me-1"></i>
+  Vous modifiez votre propre compte. Le rôle et le statut ne sont pas modifiables.
+</div>
+{% endif %}
+
 <div class="card p-4" style="max-width:640px;">
   <form method="post">
     {% csrf_token %}
@@ -38,27 +45,39 @@
       </div>
 
       <div class="col-md-6">
-        <label class="form-label fw-semibold">Rôle <span class="text-danger">*</span></label>
-        <select name="role" class="form-select">
-          <option value="vendeur" {% if form.role != "admin" %}selected{% endif %}>Vendeur</option>
-          <option value="admin"   {% if form.role == "admin"  %}selected{% endif %}>Admin</option>
-        </select>
-        <div class="form-text">Admin : accès complet. Vendeur : ventes et dettes uniquement.</div>
+        <label class="form-label fw-semibold">Rôle</label>
+        {% if is_self %}
+          <input value="Admin" class="form-control" disabled>
+          <input type="hidden" name="role" value="admin">
+        {% else %}
+          <select name="role" class="form-select">
+            <option value="vendeur" {% if form.role != "admin" %}selected{% endif %}>Vendeur</option>
+            <option value="admin"   {% if form.role == "admin"  %}selected{% endif %}>Admin</option>
+          </select>
+          <div class="form-text">Admin : accès complet. Vendeur : ventes et dettes uniquement.</div>
+        {% endif %}
       </div>
 
       {% if mode == "edit" %}
       <div class="col-md-6">
         <label class="form-label fw-semibold">Statut</label>
-        <select name="is_active" class="form-select">
-          <option value="1" {% if form.is_active %}selected{% endif %}>Actif</option>
-          <option value="0" {% if not form.is_active %}selected{% endif %}>Inactif</option>
-        </select>
+        {% if is_self %}
+          <input value="Actif" class="form-control" disabled>
+          <input type="hidden" name="is_active" value="1">
+        {% else %}
+          <select name="is_active" class="form-select">
+            <option value="1" {% if form.is_active %}selected{% endif %}>Actif</option>
+            <option value="0" {% if not form.is_active %}selected{% endif %}>Inactif</option>
+          </select>
+        {% endif %}
       </div>
       {% endif %}
 
       <div class="col-12">
         <label class="form-label fw-semibold">
-          Mot de passe {% if mode == "new" %}<span class="text-danger">*</span>{% else %}<span class="text-muted fw-normal">(laisser vide pour ne pas changer)</span>{% endif %}
+          Mot de passe
+          {% if mode == "new" %}<span class="text-danger">*</span>
+          {% else %}<span class="text-muted fw-normal">(laisser vide pour ne pas changer)</span>{% endif %}
         </label>
         <input name="password" type="password" class="form-control"
                {% if mode == "new" %}required{% endif %} minlength="8"
